@@ -1,0 +1,2295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dance Ocean</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+<style>
+  :root{
+    --coral:#FF8FA3; --sun:#FFD866; --white:#FFFDF7; --ink:#0B3D3A;
+    --ocean-a:#B8E3E9; --ocean-b:#146C94; --ocean-c:#0B4F6C;
+    --river-a:#DDEBC6; --river-b:#4C8C4A; --river-c:#274E29;
+    --gem:#8E7CFF;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;height:100%;font-family:'Nunito',sans-serif;background:#0B4F6C;overflow:hidden;}
+  h1,.font-display{font-family:'Baloo 2',sans-serif;}
+  #app{position:relative;width:100vw;height:100vh;display:flex;flex-direction:column;color:var(--white);}
+
+  header{padding:10px 16px 4px;text-align:center;background:rgba(6,38,36,.55);border-radius:0 0 18px 18px;}
+  header h1{margin:0;font-size:clamp(17px,4.2vw,24px);text-shadow:0 2px 0 rgba(0,0,0,.15);}
+  header p{margin:1px 0 0;font-size:11px;opacity:.7;}
+  header p .jp{opacity:.55;}
+
+  /* top bar: gems / food */
+  #topbar{display:flex;justify-content:center;gap:10px;padding:4px 10px;font-size:12px;}
+  .pill{background:rgba(0,0,0,.18);border-radius:999px;padding:3px 10px;display:flex;align-items:center;gap:4px;position:relative;}
+  .notify-dot{position:absolute;top:-3px;right:-3px;width:10px;height:10px;border-radius:50%;background:var(--coral);box-shadow:0 0 0 2px var(--white);animation:gentleFloat 1.6s ease-in-out infinite;pointer-events:none;}
+  @keyframes gentleFloat{0%,100%{transform:translateY(0);}50%{transform:translateY(-3px);}}
+
+  /* world tabs */
+  #tabs{display:flex;gap:8px;padding:6px 12px 2px;}
+  .tab{
+    flex:1; text-align:center; padding:8px 6px; border-radius:14px 14px 0 0;
+    font-family:'Baloo 2'; font-size:13px; font-weight:700; cursor:pointer;
+    background:rgba(6,38,36,.55); color:var(--white); opacity:.75;
+    border:2px solid transparent; position:relative;
+  }
+  .tab.active{opacity:1;background:rgba(6,38,36,.8);border-color:rgba(255,255,255,.5);}
+  .tab.locked{opacity:.5;}
+  .tab small{display:block;font-family:'Nunito';font-weight:700;font-size:10px;opacity:.85;}
+
+  /* world picker (used only when there are more worlds than fit as tabs) */
+  #worldNav{padding:6px 12px 2px;}
+  #worldNav #tabs{padding:0;}
+  .world-btn{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;position:relative;
+    padding:8px 12px;border-radius:14px 14px 0 0;border:2px solid rgba(255,255,255,.5);cursor:pointer;
+    background:rgba(6,38,36,.8);color:var(--white);font-family:'Baloo 2',sans-serif;font-size:15px;font-weight:700;}
+  .world-btn small{font-family:'Nunito',sans-serif;font-size:11px;font-weight:700;opacity:.85;margin-left:6px;}
+  .world-btn-caret{font-size:12px;opacity:.85;}
+  .world-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 6px;}
+  .world-card{position:relative;height:96px;border:none;border-radius:16px;cursor:pointer;overflow:hidden;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px;
+    color:var(--white);font-family:'Baloo 2',sans-serif;box-shadow:inset 0 0 0 2px rgba(255,255,255,.35);}
+  .world-card.current{box-shadow:inset 0 0 0 4px var(--sun);}
+  .world-card.locked::before{content:'';position:absolute;inset:0;background:rgba(6,30,25,.55);}
+  .world-card > span{position:relative;}
+  .wc-emoji{font-size:30px;line-height:1;}
+  .wc-name{background:rgba(6,38,36,.78);color:var(--white);border-radius:10px;padding:2px 8px;font-size:13px;font-weight:700;line-height:1.2;text-align:center;}
+  .wc-name small{display:block;font-family:'Nunito',sans-serif;font-size:10px;opacity:.9;}
+  .wc-req{background:rgba(6,38,36,.85);color:var(--white);border-radius:8px;padding:1px 7px;font-size:11px;font-family:'Nunito',sans-serif;font-weight:800;}
+  .world-card .notify-dot{top:6px;right:6px;}
+  .locked-overlay .lock-count{font-family:'Baloo 2',sans-serif;font-size:18px;background:rgba(6,38,36,.7);padding:2px 12px;border-radius:10px;}
+
+  #tank{position:relative;flex:1;margin:0 10px 8px;border-radius:0 0 24px 24px;overflow:hidden;box-shadow:inset 0 0 0 3px rgba(255,255,255,.3),0 8px 22px rgba(0,0,0,.35);}
+  #tank.music-on{box-shadow:inset 0 0 0 3px rgba(255,216,102,.55),0 0 26px rgba(255,216,102,.25),0 8px 22px rgba(0,0,0,.35);}
+
+  .locked-overlay{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    background:rgba(6,30,25,.55); text-align:center; padding:20px;
+  }
+  .locked-overlay .lock-emoji{font-size:34px;}
+  .locked-overlay p{margin:0;font-size:13px;max-width:240px;opacity:.9;}
+  .unlockBtn{margin-top:4px;}
+
+  .bubble{position:absolute;bottom:-30px;border-radius:50%;background:rgba(255,255,255,.5);animation:rise linear infinite;}
+  @keyframes rise{0%{transform:translateY(0) scale(1);opacity:.7;}100%{transform:translateY(var(--rise,-115vh)) scale(1.4);opacity:0;}}
+
+  #bgLayer{position:absolute;inset:0;transform-origin:50% 100%;transition:transform .6s ease;pointer-events:none;opacity:.55;}
+  #bgLayer svg{position:absolute;inset:0;width:100%;height:100%;display:none;}
+  /* v43: the water surface in worlds that have sky above the water (Rice Paddy) */
+  #surfaceLine{position:absolute;left:0;right:0;display:none;pointer-events:none;
+    height:5px;background:linear-gradient(180deg,#FFFFFF 0 55%,rgba(52,128,184,.75) 55% 100%);box-shadow:0 1px 4px rgba(255,255,255,.6);}
+
+  #creatureLayer{position:absolute;inset:0;z-index:0;transform-origin:50% 50%;transition:transform .6s ease;} /* z-index:0 keeps creature stacking inside this layer (murk overlay stays on top) */
+  .murk-overlay{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .6s;
+    background:radial-gradient(circle at 50% 40%, rgba(90,70,25,.08), rgba(55,42,18,.85));}
+
+  .creature{position:absolute;width:48px;height:48px;cursor:pointer;filter:drop-shadow(0 3px 3px rgba(0,0,0,.25));transition:width .35s,height .35s,left .1s,top .1s,transform .6s;transform:scale(var(--zoom,1));transform-origin:0 0;}
+  .creature .sprite{width:100%;height:100%;transition:transform .35s ease;}
+  /* invisible tap area around small creatures (size set per creature in JS, before scaling) */
+  .creature::before{content:'';position:absolute;inset:calc(var(--hit,0px) * -1);}
+  .creature.headphones::after{content:'🎧';position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:15px;animation:hpPop .3s ease-out;}
+  @keyframes hpPop{0%{opacity:0;transform:translateX(-50%) scale(.4);}100%{opacity:1;transform:translateX(-50%) scale(1);}}
+  .creature.bop .sprite{ animation: bopdance .42s ease-in-out infinite; }
+  @keyframes bopdance{0%{transform:translateY(0) scale(1) var(--flip);}50%{transform:translateY(-7px) scale(1.06,.94) var(--flip);}100%{transform:translateY(0) scale(1) var(--flip);}}
+  .creature.bop.body-crab .sprite, .creature.bop.body-star .sprite, .creature.bop.body-shrimp .sprite{ animation: bopwiggle .32s ease-in-out infinite; }
+  @keyframes bopwiggle{0%{transform:translateX(0) rotate(0deg) scale(1) var(--flip);}50%{transform:translateX(-5px) rotate(-8deg) scale(1) var(--flip);}100%{transform:translateX(0) rotate(0deg) scale(1) var(--flip);}}
+  .creature.bop.body-snail .sprite, .creature.bop.body-turtle .sprite{ animation: bopslow .65s ease-in-out infinite; }
+  @keyframes bopslow{0%{transform:translateY(0) rotate(0deg) scale(1) var(--flip);}50%{transform:translateY(-3px) rotate(4deg) scale(1.03,.97) var(--flip);}100%{transform:translateY(0) rotate(0deg) scale(1) var(--flip);}}
+
+  .creature.selected{filter:drop-shadow(0 0 7px var(--sun)) drop-shadow(0 0 3px var(--sun));}
+  .creature.beat .sprite{ animation:squish .28s ease-out; }
+  @keyframes squish{0%{transform:scale(1) var(--flip);}40%{transform:scale(1.16,.84) var(--flip);}100%{transform:scale(1) var(--flip);}}
+
+  /* a banner that may need two lines: a full-width row that floats up, with the text centred inside it (the float-up animation replaces any transform, so translate(-50%) can't be used to centre) */
+  .levelup-row.overlay{position:fixed;z-index:300;} /* v42: above Field Notes (z-index 50) */
+  .levelup-row.overlay span{background:rgba(24,32,34,.88);} /* on the white Field Notes card the usual light shade is too faint */
+  .levelup-row{position:absolute;left:8%;right:8%;z-index:200;text-align:center;animation:floatup 2.4s ease-out forwards;pointer-events:none;}
+  .levelup-row span{display:inline-block;font-family:'Baloo 2';font-size:13px;line-height:1.5;color:var(--sun);text-shadow:0 2px 3px rgba(0,0,0,.55);background:rgba(24,32,34,.6);padding:3px 10px;border-radius:10px;} /* v43: .25 -> .6, readable on the light Rice Paddy sky */
+  .levelup{position:absolute;z-index:200;font-family:'Baloo 2';font-size:15px;color:var(--sun);text-shadow:0 2px 3px rgba(0,0,0,.55);animation:floatup 2.4s ease-out forwards;pointer-events:none;white-space:nowrap;background:rgba(24,32,34,.6);padding:3px 8px;border-radius:10px;}
+  @keyframes floatup{0%{opacity:0;transform:translateY(6px) scale(.9);}12%{opacity:1;transform:translateY(0) scale(1);}70%{opacity:1;transform:translateY(-14px) scale(1);}100%{opacity:0;transform:translateY(-42px) scale(1);}}
+  .sparkle{position:absolute;font-size:20px;animation:sparkleAnim .9s ease-out forwards;pointer-events:none;}
+  @keyframes sparkleAnim{0%{transform:scale(.3) translateY(0);opacity:1;}100%{transform:scale(1.4) translateY(-30px);opacity:0;}}
+
+  .namelabel{position:absolute;z-index:200;transform:translate(-10%,-130%);font-family:'Baloo 2';font-size:11px;color:var(--white);background:rgba(0,0,0,.4);padding:2px 8px;border-radius:8px;pointer-events:none;animation:namefade 1.8s ease-out forwards;white-space:nowrap;}
+  @keyframes namefade{0%{opacity:0;transform:translate(-10%,-118%);}15%{opacity:1;transform:translate(-10%,-138%);}78%{opacity:1;}100%{opacity:0;transform:translate(-10%,-155%);}}
+
+  .dex-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50;}
+  .dex-modal.hidden{display:none;}
+  .dex-card{background:var(--white);color:var(--ink);border-radius:18px;padding:16px 16px 10px;max-width:320px;width:86vw;max-height:74vh;overflow-y:auto;font-family:'Nunito';position:relative;}
+  .modal-x{position:absolute;top:10px;right:12px;font-size:20px;line-height:1;background:rgba(0,0,0,.06);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;color:var(--ink);}
+  .dex-card h2{font-family:'Baloo 2';margin:0 0 10px;font-size:18px;}
+  /* Field Notes (v34): one row of pictures per world; tap a picture for its page */
+  .dex-row{margin:6px 0 10px;}
+  .dex-row h3{font-family:'Baloo 2';font-size:14px;margin:0 0 4px;}
+  .dex-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;}
+  .dex-cell{position:relative;background:#F2F6F7;border:none;border-radius:10px;padding:4px 2px 3px;cursor:pointer;color:var(--ink);font-family:'Baloo 2';display:flex;flex-direction:column;align-items:center;min-width:0;}
+  .dex-cell .pic{width:100%;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;}
+  .dex-cell .pic svg{width:92%;height:92%;}
+  .dex-cell .nm{font-size:9.5px;line-height:1.15;text-align:center;min-height:2.3em;display:flex;align-items:center;justify-content:center;overflow-wrap:normal;}
+  .dex-cell.locked{cursor:default;opacity:.45;}
+  .dex-cell.locked .pic{font-size:20px;}
+  .dex-cell .new{position:absolute;top:1px;right:2px;font-size:12px;}
+  .dex-page .topbar{display:flex;justify-content:space-between;align-items:center;margin:0 34px 6px 0;gap:6px;}
+  /* small grey buttons in Field Notes and the confirm box: the tap area is at least 44x44px (Apple's minimum) */
+  .dex-small{border:none;border-radius:999px;background:#E9E9E9;color:var(--ink);font-family:'Baloo 2';font-size:13px;padding:6px 14px;cursor:pointer;min-height:44px;min-width:44px;}
+  .dex-page .big{width:150px;height:150px;margin:2px auto 4px;display:flex;align-items:center;justify-content:center;}
+  .dex-page .big svg{width:100%;height:100%;}
+  /* v43: the big picture of a two-form creature is a button (tap = the other form). No hint text: finding it is part of the fun */
+  .dex-page .big.form-toggle{border:none;background:none;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+  .dex-page .big.form-toggle.swapped svg{animation:formSwap .35s ease-out;}
+  @keyframes formSwap{0%{transform:scale(.7) rotate(-6deg);opacity:.3;}70%{transform:scale(1.06);opacity:1;}100%{transform:scale(1);}}
+  .dex-page .en-name{font-family:'Baloo 2';font-size:22px;text-align:center;margin:0;line-height:1.2;}
+  .dex-page .jp-name{font-size:13px;text-align:center;margin:0 0 8px;opacity:.7;}
+  .dex-page .name-row{display:flex;align-items:center;justify-content:center;gap:6px;}
+  .dex-small.muted{opacity:.35;cursor:default;} /* 🔇 is on: reading is off, and the button says so by looking faded */
+  .dex-small.reading{background:#FFD866;}
+  .dex-tabs{display:flex;gap:6px;margin:0 0 8px;}
+  .dex-tabs .dex-small{flex:1;}
+  .dex-tabs .dex-small.on{background:#FFD866;}
+  .song-list{display:flex;flex-direction:column;gap:6px;}
+  .song{display:flex;align-items:center;gap:10px;width:100%;min-height:52px;border:none;border-radius:12px;background:#F2F6F7;color:var(--ink);font-family:'Baloo 2';font-size:15px;padding:6px 12px;cursor:pointer;text-align:left;}
+  .song .em{font-size:22px;width:30px;text-align:center;}
+  .song .nm{flex:1;}
+  .song .play{font-size:20px;width:30px;text-align:center;}
+  .song.playing{background:#FFF1B8;}
+  .song.locked{opacity:.45;cursor:default;}
+  .dex-page .voice-note{font-size:11px;opacity:.7;margin:-4px 0 8px;} /* v37: tells on a real phone why Japanese was not read */
+  .dex-page .fact{font-size:14px;line-height:1.7;margin:0 0 8px;}
+  .dex-page .found{font-size:13px;line-height:1.6;background:#FFF6D6;border-radius:10px;padding:7px 10px;margin:0 0 8px;}
+  .dex-page .nav{display:flex;justify-content:space-between;align-items:center;gap:6px;margin:4px 0;}
+  .dex-page .nav button{min-width:52px;}
+  .dex-page .nav button:disabled{opacity:.35;cursor:default;}
+  .dex-page .goto{width:100%;max-width:none;margin-top:4px;}
+  .dexCloseBtn{width:100%;margin-top:8px;}
+  /* 📖 on the selected creature: looks like the other buttons, but its tap area reaches at least 44x44px */
+  #dexSelBtn{position:relative;overflow:visible;min-width:44px;padding-left:10px;padding-right:10px;}
+  #dexSelBtn::after{content:'';position:absolute;left:50%;top:50%;width:max(100%,44px);height:max(100%,44px);transform:translate(-50%,-50%);}
+  .confirm-lang{position:absolute;top:8px;right:8px;}
+
+  #hud{padding:5px 14px 2px;font-size:12px;}
+  .meter-label{display:flex;justify-content:space-between;margin-bottom:2px;opacity:.95;background:rgba(6,38,36,.55);padding:3px 10px;border-radius:8px;}
+
+  /* Landscape phones: height is the scarce resource here, not width.
+     Only kicks in when height is short — normal portrait and typical desktop windows are unaffected. */
+  @media (orientation: landscape) and (max-height: 500px){
+    header{padding:4px 16px 1px;}
+    header p{display:none;}
+    header h1{font-size:15px;}
+    #topbar{padding:2px 10px;}
+    #tabs{padding:2px 10px 0;}
+    .tab{padding:4px 6px;}
+    .tab small{font-size:9px;}
+    #worldNav{padding:2px 10px 0;}
+    .world-btn{padding:4px 10px;font-size:13px;}
+    #hud{padding:2px 14px 0;}
+    .meter-label{padding:2px 8px;font-size:10px;margin-bottom:1px;}
+    #controls{padding:3px 12px 6px;min-height:58px;}
+    .btn{padding:6px 12px;font-size:11px;}
+  }
+  .meter{height:9px;border-radius:6px;background:rgba(255,255,255,.18);overflow:hidden;}
+  .meter>div{height:100%;border-radius:6px;width:0%;transition:width .3s;}
+  .meter.happy>div{background:linear-gradient(90deg,var(--sun),var(--coral));}
+  .meter.clarity>div{background:linear-gradient(90deg,#8FE3A0,#3E9C6B);}
+  .meter.calm>div{background:linear-gradient(90deg,#9FE3FF,#B9A8FF);}
+  .meter.water>div{background:linear-gradient(90deg,#9FE3FF,#3E8FD0);}
+  /* quiet worlds: no rising bubbles (marine snow falls instead) */
+  #tank.no-bubbles .bubble{display:none;}
+  /* gentle glow on the action button when it is the thing to press (e.g. 🤫 Quiet while music plays in the Deep Sea) */
+  .btn.hint{animation:hintGlow 1.4s ease-in-out infinite;}
+  @keyframes hintGlow{0%,100%{box-shadow:0 3px 0 rgba(0,0,0,.18),0 0 0 0 rgba(255,216,102,0);}50%{box-shadow:0 3px 0 rgba(0,0,0,.18),0 0 0 7px rgba(255,216,102,.9);}}
+  .app-version{text-align:right;font-size:10px;color:var(--ink);opacity:.55;margin:8px 2px 0;}
+
+  #controls{display:flex;gap:8px;justify-content:center;align-items:center;padding:6px 12px 14px;flex-wrap:wrap;min-height:88px;align-content:center;}
+  .btn{border:none;border-radius:999px;padding:10px 16px;font-family:'Baloo 2';font-size:13px;font-weight:700;color:var(--ink);background:var(--white);box-shadow:0 3px 0 rgba(0,0,0,.18);cursor:pointer;transition:transform .08s;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .btn:active{transform:translateY(2px);box-shadow:0 1px 0 rgba(0,0,0,.18);}
+  .btn.primary{background:var(--sun);} .btn.playing{background:var(--coral);color:#fff;}
+  .btn.ghost{background:rgba(6,38,36,.6);color:var(--white);box-shadow:none;}
+  .btn.secondary{background:#E9E9E9;color:var(--ink);box-shadow:0 3px 0 rgba(0,0,0,.08);}
+  .btn:disabled{opacity:.4;cursor:not-allowed;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>🐠 Dance Ocean</h1>
+    <p>Play music, watch them dance and grow <span class="jp">/ 音楽をかけて、いっしょに育てよう</span></p>
+  </header>
+
+  <div id="topbar">
+    <div class="pill">💎 <span id="gemCount">0</span></div>
+    <div class="pill" id="dexBtn" style="cursor:pointer;">📖 <span id="dexCount">0</span>/<span id="dexTotal">15</span><span class="notify-dot" id="dexNotifyDot" style="display:none;"></span></div>
+    <div class="pill" id="saveBtn" style="cursor:pointer;">💾</div>
+    <div class="pill" id="soundBtn" role="button" aria-label="Sound on" style="cursor:pointer;">🔊</div>
+  </div>
+
+  <div id="saveModal" class="dex-modal hidden">
+    <div class="dex-card">
+      <button class="modal-x" id="saveXBtn">✕</button>
+      <h2>💾 Save Code</h2>
+      <p style="font-size:12px;opacity:.75;margin:0 0 8px;">Copy this code somewhere safe (notes app, message to yourself). Paste it back in anytime to restore your tank.</p>
+      <textarea id="saveCodeOut" readonly style="width:100%;height:64px;font-size:10px;border-radius:8px;border:1px solid #ccc;padding:6px;font-family:monospace;"></textarea>
+      <button class="btn primary" id="copyCodeBtn" style="width:100%;margin-top:6px;">Copy Code</button>
+      <hr style="margin:14px 0 8px;border:none;border-top:1px solid rgba(0,0,0,.1);">
+      <p style="font-size:12px;opacity:.75;margin:0 0 6px;">Paste a code here to load it:</p>
+      <textarea id="saveCodeIn" style="width:100%;height:50px;font-size:10px;border-radius:8px;border:1px solid #ccc;padding:6px;font-family:monospace;"></textarea>
+      <button class="btn" id="loadCodeBtn" style="width:100%;margin-top:6px;">Load Code</button>
+      <button class="btn secondary dexCloseBtn" id="saveCloseBtn" style="width:100%;margin-top:8px;">Close</button>
+      <p class="app-version" id="appVersion"></p>
+    </div>
+  </div>
+
+  <div id="confirmModal" class="dex-modal hidden">
+    <div class="dex-card" style="text-align:center;">
+      <button class="dex-small confirm-lang" id="confirmLangBtn">日本語</button>
+      <p id="confirmText" style="font-size:14px;line-height:1.7;margin:46px 0 18px;"></p>
+      <div style="display:flex;gap:10px;">
+        <button class="btn secondary" id="confirmNoBtn" style="flex:1;">Cancel</button>
+        <button class="btn primary" id="confirmYesBtn" style="flex:1;">Yes</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="worldModal" class="dex-modal hidden">
+    <div class="dex-card">
+      <button class="modal-x" id="worldXBtn">✕</button>
+      <h2>🗺️ Worlds</h2>
+      <div id="worldGrid" class="world-grid"></div>
+      <button class="btn secondary dexCloseBtn" id="worldCloseBtn">Close</button>
+    </div>
+  </div>
+
+  <div id="dexModal" class="dex-modal hidden">
+    <div class="dex-card">
+      <button class="modal-x" id="dexXBtn">✕</button>
+      <h2>📖 Field Notes</h2>
+      <div class="dex-tabs" id="dexTabs">
+        <button class="dex-small" id="dexTabFriends">🐠 Friends</button>
+        <button class="dex-small" id="dexTabSongs">🎵 Songs</button>
+      </div>
+      <div id="dexList"></div>
+      <button class="btn primary dexCloseBtn" id="dexCloseBtn">Close</button>
+    </div>
+  </div>
+
+  <div id="worldNav"></div>
+
+  <div id="hud">
+    <div class="meter-label" id="meterLabel"><span>Happiness</span><span id="meterPct">0%</span></div>
+    <div class="meter happy" id="meterBar"><div id="meterFill"></div></div>
+  </div>
+
+  <div id="tank">
+    <div id="surfaceLine"></div>
+    <div id="bgLayer">
+      <svg class="bg-ocean" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice">
+        <polygon points="20,300 20,230 34,230 34,210 48,210 48,240 60,240 60,300" fill="#04303A" opacity="0.5"/>
+        <polygon points="300,300 300,220 316,220 316,195 334,195 334,225 350,225 350,300" fill="#04303A" opacity="0.5"/>
+        <circle cx="90" cy="284" r="20" fill="#0B4A45" opacity="0.5"/>
+        <circle cx="115" cy="292" r="14" fill="#0B4A45" opacity="0.5"/>
+        <circle cx="270" cy="288" r="18" fill="#0B4A45" opacity="0.5"/>
+      </svg>
+      <svg class="bg-river" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice">
+        <polygon points="40,300 40,230 55,180 70,230 70,300" fill="#1C3B1E" opacity="0.55"/>
+        <polygon points="90,300 90,215 108,150 126,215 126,300" fill="#1C3B1E" opacity="0.55"/>
+        <polygon points="290,300 290,225 305,170 320,225 320,300" fill="#1C3B1E" opacity="0.55"/>
+        <rect x="330" y="255" width="46" height="45" fill="#2A2318" opacity="0.5"/>
+        <polygon points="325,255 353,225 381,255" fill="#3A2E1C" opacity="0.5"/>
+      </svg>
+      <svg class="bg-suisou" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice">
+        <rect x="150" y="245" width="30" height="55" fill="#0F3A47" opacity="0.55"/>
+        <rect x="185" y="220" width="24" height="80" fill="#0F3A47" opacity="0.55"/>
+        <polygon points="150,245 165,225 180,245" fill="#0F3A47" opacity="0.55"/>
+        <polygon points="185,220 197,200 209,220" fill="#0F3A47" opacity="0.55"/>
+        <path d="M40,300 Q45,250 35,220 Q50,255 55,300" fill="#0B4A45" opacity="0.5"/>
+        <path d="M340,300 Q348,240 335,205 Q355,250 362,300" fill="#0B4A45" opacity="0.5"/>
+      </svg>
+      <svg class="bg-coral" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice">
+        <ellipse cx="200" cy="304" rx="240" ry="26" fill="#F6E7BE" opacity="0.8"/>
+        <g stroke="#FF7F9A" stroke-width="9" stroke-linecap="round" fill="none" opacity="0.85">
+          <path d="M118,300 L118,242 M118,264 L98,234 M118,252 L138,222 M98,234 L90,216 M138,222 L150,206"/>
+        </g>
+        <g stroke="#FFA94D" stroke-width="7" stroke-linecap="round" fill="none" opacity="0.85">
+          <path d="M284,300 L284,238 M284,258 L266,228 M284,248 L304,216 M304,216 L314,200 M266,228 L258,212"/>
+        </g>
+        <path d="M206,300 Q184,250 206,226 Q230,250 218,300 Z" fill="#B48CF0" opacity="0.7"/>
+        <circle cx="162" cy="292" r="20" fill="#F7C86A" opacity="0.9"/>
+        <path d="M148,288 Q156,280 162,288 Q168,296 176,288" stroke="#E0A83E" stroke-width="2" fill="none"/>
+        <circle cx="246" cy="294" r="15" fill="#FF9FB4" opacity="0.9"/>
+      </svg>
+      <svg class="bg-deepsea" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice">
+        <path d="M0,300 Q80,272 160,286 Q250,266 330,283 Q372,277 400,288 L400,300 Z" fill="#A9CCF4" opacity="0.75"/>
+        <ellipse cx="300" cy="284" rx="22" ry="7" fill="#C6DDF8" opacity="0.8"/>
+        <ellipse cx="90" cy="290" rx="16" ry="5" fill="#C6DDF8" opacity="0.8"/>
+        <circle cx="14" cy="-10" r="1.8" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="25s" begin="-20s" repeatCount="indefinite"/></circle>
+        <circle cx="29" cy="-10" r="1.8" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="16s" begin="-11s" repeatCount="indefinite"/></circle>
+        <circle cx="53" cy="-10" r="2.6" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="19s" begin="-1s" repeatCount="indefinite"/></circle>
+        <circle cx="78" cy="-10" r="2.2" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="25s" begin="-2s" repeatCount="indefinite"/></circle>
+        <circle cx="107" cy="-10" r="1.8" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="25s" begin="-1s" repeatCount="indefinite"/></circle>
+        <circle cx="127" cy="-10" r="1.8" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="16s" begin="-12s" repeatCount="indefinite"/></circle>
+        <circle cx="149" cy="-10" r="1.8" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="16s" begin="-4s" repeatCount="indefinite"/></circle>
+        <circle cx="181" cy="-10" r="2.2" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="19s" begin="-17s" repeatCount="indefinite"/></circle>
+        <circle cx="199" cy="-10" r="2.6" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="22s" begin="-17s" repeatCount="indefinite"/></circle>
+        <circle cx="225" cy="-10" r="1.8" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="19s" begin="-11s" repeatCount="indefinite"/></circle>
+        <circle cx="247" cy="-10" r="2.6" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="16s" begin="-1s" repeatCount="indefinite"/></circle>
+        <circle cx="274" cy="-10" r="2.2" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="25s" begin="-24s" repeatCount="indefinite"/></circle>
+        <circle cx="302" cy="-10" r="2.2" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="25s" begin="-11s" repeatCount="indefinite"/></circle>
+        <circle cx="325" cy="-10" r="1.8" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="19s" begin="-7s" repeatCount="indefinite"/></circle>
+        <circle cx="342" cy="-10" r="2.6" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="22s" begin="-16s" repeatCount="indefinite"/></circle>
+        <circle cx="379" cy="-10" r="2.2" fill="#FFFFFF"><animate attributeName="cy" from="-10" to="310" dur="25s" begin="-9s" repeatCount="indefinite"/></circle>
+      </svg>
+      <!-- v43 Rice Paddy: rice plants standing in the water (the sky and the water line come from the tank colours and #surfaceLine) -->
+      <svg class="bg-paddy" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice">
+        <path d="M0,300 L0,276 Q100,264 200,274 Q300,284 400,270 L400,300 Z" fill="#B9A27A" opacity="0.8"/>
+        <g stroke="#3F8A3A" stroke-width="3" stroke-linecap="round" fill="none">
+          <path d="M30,300 Q28,180 14,52"/><path d="M30,300 Q31,170 32,40"/><path d="M30,300 Q33,180 48,56"/>
+          <path d="M31,150 Q44,110 56,96" stroke-width="2.5"/><path d="M29,170 Q16,128 4,116" stroke-width="2.5"/>
+        </g>
+        <g stroke="#3F8A3A" stroke-width="3" stroke-linecap="round" fill="none">
+          <path d="M95,300 Q93,180 79,52"/><path d="M95,300 Q96,170 97,40"/><path d="M95,300 Q98,180 113,56"/>
+          <path d="M96,150 Q109,110 121,96" stroke-width="2.5"/><path d="M94,170 Q81,128 69,116" stroke-width="2.5"/>
+        </g>
+        <g stroke="#3F8A3A" stroke-width="3" stroke-linecap="round" fill="none">
+          <path d="M160,300 Q158,180 144,52"/><path d="M160,300 Q161,170 162,40"/><path d="M160,300 Q163,180 178,56"/>
+          <path d="M161,150 Q174,110 186,96" stroke-width="2.5"/><path d="M159,170 Q146,128 134,116" stroke-width="2.5"/>
+        </g>
+        <g stroke="#3F8A3A" stroke-width="3" stroke-linecap="round" fill="none">
+          <path d="M225,300 Q223,180 209,52"/><path d="M225,300 Q226,170 227,40"/><path d="M225,300 Q228,180 243,56"/>
+          <path d="M226,150 Q239,110 251,96" stroke-width="2.5"/><path d="M224,170 Q211,128 199,116" stroke-width="2.5"/>
+        </g>
+        <g stroke="#3F8A3A" stroke-width="3" stroke-linecap="round" fill="none">
+          <path d="M290,300 Q288,180 274,52"/><path d="M290,300 Q291,170 292,40"/><path d="M290,300 Q293,180 308,56"/>
+          <path d="M291,150 Q304,110 316,96" stroke-width="2.5"/><path d="M289,170 Q276,128 264,116" stroke-width="2.5"/>
+        </g>
+        <g stroke="#3F8A3A" stroke-width="3" stroke-linecap="round" fill="none">
+          <path d="M355,300 Q353,180 339,52"/><path d="M355,300 Q356,170 357,40"/><path d="M355,300 Q358,180 373,56"/>
+          <path d="M356,150 Q369,110 381,96" stroke-width="2.5"/><path d="M354,170 Q341,128 329,116" stroke-width="2.5"/>
+        </g>
+      </svg>
+      <!-- v43 Tide Pool: rocks around a pool of sea water -->
+      <svg class="bg-tidepool" viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice">
+        <path d="M0,300 L0,186 Q24,160 58,176 Q86,150 118,190 Q132,226 150,300 Z" fill="#A79F92"/>
+        <path d="M400,300 L400,170 Q372,148 342,170 Q314,160 296,200 Q284,240 270,300 Z" fill="#9C9486"/>
+        <path d="M150,300 Q170,270 210,276 Q240,262 270,300 Z" fill="#B8B0A2"/>
+        <path d="M30,190 Q60,178 92,196" stroke="#C9C2B6" stroke-width="4" fill="none" stroke-linecap="round"/>
+        <g stroke="#3FA36A" stroke-width="5" stroke-linecap="round" fill="none">
+          <path d="M190,280 Q182,250 194,226 Q204,206 196,188"/><path d="M228,276 Q238,252 228,232"/><path d="M322,176 Q314,156 324,136"/>
+        </g>
+      </svg>
+    </div>
+    <div id="creatureLayer"></div>
+    <div id="murkOverlay" class="murk-overlay"></div>
+  </div>
+
+  <div id="controls">
+    <button class="btn primary" id="musicBtn">▶ Music</button>
+    <button class="btn" id="actionBtn">🍚 Feed</button>
+    <button class="btn ghost" id="dexSelBtn" style="display:none;" aria-label="Field Notes">📖</button>
+    <button class="btn ghost" id="addBtn">✨ New Friend (3🍚)</button>
+    <button class="btn ghost" id="treatBtn" style="display:none;">🍬 Perk Up (8💎)</button>
+    <button class="btn ghost" id="releaseBtn" style="display:none;">🕊️ Release</button>
+    <button class="btn ghost" id="sellBtn" style="display:none;">💰 Sell (100💎)</button>
+  </div>
+</div>
+
+<script>
+/* ============ SPRITE DRAWING (side-view, mirrorable) ============
+   Real illustration assets aren't something I can hand-draw here,
+   so this builds a lightweight sprite SYSTEM: one SVG per species,
+   with a JS-driven angle (skew) + horizontal flip based on movement
+   direction. Swap in real PNG/SVG art later without touching the logic. */
+function eyeSVG(cx, cy, r, mood){
+  if(mood==='happy'){
+    return `<path d="M${cx-r},${cy} Q${cx},${cy-r*1.5} ${cx+r},${cy}" stroke="#182022" stroke-width="${(r*0.5).toFixed(1)}" fill="none" stroke-linecap="round"/>`;
+  }
+  if(mood==='uneasy'){
+    const w=(r*0.45).toFixed(1);
+    return `<path d="M${cx-r},${cy-r*0.7} L${cx+r*0.6},${cy} L${cx-r},${cy+r*0.7}" stroke="#182022" stroke-width="${w}" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`+
+      `<path d="M${cx+r*1.5},${cy-r*1.6} Q${cx+r*2.2},${cy-r*0.6} ${cx+r*1.5},${cy-r*0.3} Q${cx+r*0.8},${cy-r*0.6} ${cx+r*1.5},${cy-r*1.6} Z" fill="#7FD3FF" stroke="#2A7FB8" stroke-width="0.8"/>`;
+  }
+  if(mood==='sleepy'){
+    return `<path d="M${cx-r},${cy} Q${cx},${cy+r*0.6} ${cx+r},${cy}" stroke="#182022" stroke-width="${(r*0.4).toFixed(1)}" fill="none" stroke-linecap="round"/>`;
+  }
+  return `<circle cx="${cx}" cy="${cy}" r="${r}" fill="#fff"/><circle cx="${(cx+r*0.2).toFixed(1)}" cy="${cy}" r="${(r*0.45).toFixed(1)}" fill="#182022"/>`;
+}
+function svgTurtle(shell, body, pattern, mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="46" cy="34" rx="10" ry="7" fill="${body}"/>
+    <ellipse cx="22" cy="44" rx="9" ry="6" fill="${body}"/>
+    <ellipse cx="70" cy="44" rx="9" ry="6" fill="${body}"/>
+    <ellipse cx="20" cy="20" rx="8" ry="5" fill="${body}"/>
+    <ellipse cx="48" cy="28" rx="32" ry="22" fill="${shell}"/>
+    <path d="M48,10 L60,28 L48,46 L36,28 Z" fill="${pattern}" opacity="0.55"/>
+    <circle cx="48" cy="28" r="7" fill="${pattern}" opacity="0.4"/>
+    <ellipse cx="84" cy="24" rx="13" ry="11" fill="${body}"/>
+    ${eyeSVG(90,21,4.5,mood)}
+  </svg>`;
+}
+function svgCatfish(body, accent, fin, mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="52" cy="32" rx="32" ry="16" fill="${body}"/>
+    <polygon points="20,32 -2,18 -2,46" fill="${fin}"/>
+    <path d="M30,20 Q52,12 74,20" stroke="${accent}" stroke-width="4" fill="none" opacity="0.7"/>
+    <path d="M82,26 Q94,20 100,24" stroke="${body}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M82,32 Q95,32 101,34" stroke="${body}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <path d="M82,38 Q94,44 99,46" stroke="${body}" stroke-width="2" fill="none" stroke-linecap="round"/>
+    ${eyeSVG(80,24,5.5,mood)}
+  </svg>`;
+}
+function svgAngelfish(body, accent, fin, mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="52,4 70,30 52,56 34,30" fill="${body}"/>
+    <polygon points="20,30 2,6 12,30 2,54" fill="${fin}"/>
+    <path d="M40,14 Q52,8 64,14" stroke="${accent}" stroke-width="4" fill="none" opacity="0.7"/>
+    <path d="M40,46 Q52,52 64,46" stroke="${accent}" stroke-width="4" fill="none" opacity="0.7"/>
+    ${eyeSVG(58,26,6,mood)}
+  </svg>`;
+}
+function svgStar(body, accent, mood){
+  const pts = [[50,4],[61,36],[96,36],[67,56],[78,90],[50,68],[22,90],[33,56],[4,36],[39,36]];
+  return `<svg viewBox="0 0 100 90" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="${pts.map(p=>p.join(',')).join(' ')}" fill="${body}"/>
+    <circle cx="50" cy="40" r="8" fill="${accent}" opacity="0.5"/>
+    ${eyeSVG(44,30,5,mood)}
+    ${eyeSVG(58,30,5,mood)}
+  </svg>`;
+}
+function svgGiantSalamander(mood){
+  // Japanese giant salamander (v40, replaces the otter): flat broad head, wide mouth, tiny eyes (drawn a little bigger so the face reads),
+  // short four legs, mottled brown skin (each one's pattern is different), flat tail. Pale outline so it reads on the river background.
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4,34 Q14,25 25,31 L25,39 Q14,43 4,38 Z" fill="#7A5C40" stroke="rgba(255,255,255,.6)" stroke-width="1.2"/>
+    <g fill="#6A4E36"><rect x="30" y="38" width="5.5" height="9" rx="2.7"/><rect x="40" y="39" width="5.5" height="9" rx="2.7"/><rect x="61" y="38" width="5.5" height="9" rx="2.7"/><rect x="70" y="39" width="5.5" height="8" rx="2.7"/></g>
+    <ellipse cx="48" cy="34" rx="27" ry="9.5" fill="#8A6A4A" stroke="rgba(255,255,255,.6)" stroke-width="1.2"/>
+    <ellipse cx="79" cy="33" rx="16" ry="9" fill="#8A6A4A" stroke="rgba(255,255,255,.6)" stroke-width="1.2"/>
+    <g fill="#5E4630"><circle cx="36" cy="32" r="2.1"/><circle cx="46" cy="37" r="1.8"/><circle cx="55" cy="31" r="2"/><circle cx="64" cy="36" r="1.6"/><circle cx="73" cy="30" r="1.5"/><circle cx="22" cy="35" r="1.4"/></g>
+    <path d="M83,37 Q89,38.5 95,35" fill="none" stroke="#4A3524" stroke-width="1.6" stroke-linecap="round"/>
+    ${eyeSVG(85,29,3.2,mood)}
+  </svg>`;
+}
+function svgShrimp(body, accent, mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20,38 Q30,14 60,16 Q86,18 88,34 Q86,44 66,42 Q38,40 20,38 Z" fill="${body}" opacity="0.85"/>
+    <path d="M18,38 Q10,44 4,40" stroke="${body}" stroke-width="4" fill="none" stroke-linecap="round" opacity="0.85"/>
+    <line x1="22" y1="20" x2="6" y2="6" stroke="${accent}" stroke-width="2" stroke-linecap="round"/>
+    <line x1="28" y1="22" x2="16" y2="4" stroke="${accent}" stroke-width="2" stroke-linecap="round"/>
+    <line x1="40" y1="40" x2="34" y2="52" stroke="${body}" stroke-width="3" stroke-linecap="round"/>
+    <line x1="55" y1="42" x2="50" y2="54" stroke="${body}" stroke-width="3" stroke-linecap="round"/>
+    <polygon points="86,30 100,26 100,42" fill="${accent}" opacity="0.7"/>
+    ${eyeSVG(24,26,4.5,mood)}
+  </svg>`;
+}
+function svgCrayfish(body, claw, mood){
+  // Real features: long segmented body like a small lobster, fan-shaped tail, two big front claws, long antennae
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M74,24 Q90,8 100,6" stroke="${claw}" stroke-width="1.5" fill="none"/>
+    <path d="M74,27 Q92,20 100,22" stroke="${claw}" stroke-width="1.5" fill="none"/>
+    <g stroke="${claw}" stroke-width="2.5" stroke-linecap="round"><line x1="52" y1="38" x2="48" y2="48"/><line x1="58" y1="39" x2="56" y2="50"/><line x1="64" y1="38" x2="64" y2="49"/></g>
+    <line x1="66" y1="29" x2="80" y2="19" stroke="${claw}" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="88" cy="17" rx="10" ry="6" fill="${claw}"/><ellipse cx="93" cy="11" rx="6" ry="3" fill="${claw}"/>
+    <line x1="66" y1="34" x2="80" y2="42" stroke="${claw}" stroke-width="5" stroke-linecap="round"/>
+    <ellipse cx="88" cy="44" rx="10" ry="6" fill="${claw}"/><ellipse cx="93" cy="50" rx="6" ry="3" fill="${claw}"/>
+    <polygon points="1,19 14,30 1,41" fill="${claw}"/>
+    <g fill="${body}" stroke="rgba(0,0,0,.2)" stroke-width="1">
+      <ellipse cx="17" cy="30" rx="6" ry="6"/><ellipse cx="26" cy="30" rx="7" ry="7.5"/>
+      <ellipse cx="36" cy="30" rx="7.5" ry="8.5"/><ellipse cx="45" cy="30" rx="7" ry="9"/>
+    </g>
+    <ellipse cx="59" cy="30" rx="15" ry="10" fill="${body}"/>
+    <ellipse cx="72" cy="29" rx="6" ry="6" fill="${body}"/>
+    ${eyeSVG(74,25,3.5,mood)}
+  </svg>`;
+}
+function svgHermitCrab(shell, ring, body, claw, mood){
+  // Real features: lives inside a borrowed snail shell, only the front of the body and the claws poke out,
+  // one claw bigger than the other, eyes on stalks
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="${body}" stroke-width="3" stroke-linecap="round"><line x1="60" y1="44" x2="54" y2="56"/><line x1="66" y1="46" x2="64" y2="58"/><line x1="72" y1="45" x2="76" y2="56"/></g>
+    <circle cx="38" cy="30" r="24" fill="${shell}"/>
+    <circle cx="38" cy="30" r="17" fill="${ring}"/>
+    <circle cx="38" cy="30" r="11" fill="${shell}"/>
+    <circle cx="38" cy="30" r="5" fill="${ring}"/>
+    <ellipse cx="66" cy="38" rx="12" ry="9" fill="${body}"/>
+    <line x1="64" y1="31" x2="62" y2="17" stroke="${body}" stroke-width="3" stroke-linecap="round"/>
+    <line x1="70" y1="31" x2="73" y2="17" stroke="${body}" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="83" cy="38" rx="10" ry="8" fill="${claw}"/>
+    <ellipse cx="79" cy="49" rx="6" ry="4.5" fill="${claw}"/>
+    ${eyeSVG(62,16,4,mood)}
+    ${eyeSVG(73,16,4,mood)}
+  </svg>`;
+}
+function svgBetta(body, fin, accent, mood){
+  // Real features: small body with very long, flowing fins (tail, top and bottom) that trail behind it
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M46,28 Q22,-6 0,4 Q12,28 0,54 Q22,64 46,32 Z" fill="${fin}" opacity="0.92"/>
+    <path d="M18,12 Q28,22 40,28 M16,44 Q28,36 40,31" stroke="${accent}" stroke-width="1.5" fill="none" opacity="0.6"/>
+    <path d="M52,19 Q54,0 72,6 Q66,14 64,20 Z" fill="${fin}" opacity="0.92"/>
+    <path d="M52,37 Q52,60 72,56 Q64,44 64,38 Z" fill="${fin}" opacity="0.92"/>
+    <path d="M70,36 Q72,48 66,56" stroke="${fin}" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="64" cy="28" rx="20" ry="11" fill="${body}"/>
+    <path d="M52,24 Q64,20 78,25" stroke="${accent}" stroke-width="2.5" fill="none" opacity="0.7"/>
+    ${eyeSVG(76,25,4,mood)}
+  </svg>`;
+}
+function svgFish(body, accent, fin, mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="55" cy="30" rx="34" ry="20" fill="${body}"/>
+    <polygon points="20,30 -2,14 -2,46" fill="${fin}"/>
+    <polygon points="55,10 65,-4 70,12" fill="${fin}"/>
+    <path d="M35,18 Q55,10 75,20" stroke="${accent}" stroke-width="5" fill="none" opacity="0.8"/>
+    <path d="M32,42 Q55,50 76,40" stroke="${accent}" stroke-width="5" fill="none" opacity="0.8"/>
+    ${eyeSVG(79,26,6,mood)}
+  </svg>`;
+}
+function svgSnail(body, shell, mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="50" cy="46" rx="40" ry="12" fill="${body}"/>
+    <circle cx="62" cy="26" r="24" fill="${shell}"/>
+    <circle cx="62" cy="26" r="17" fill="${body}" opacity="0.35"/>
+    <circle cx="62" cy="26" r="10" fill="${shell}"/>
+    <circle cx="62" cy="26" r="4" fill="${body}" opacity="0.5"/>
+    <line x1="14" y1="38" x2="4" y2="20" stroke="${body}" stroke-width="3" stroke-linecap="round"/>
+    <line x1="24" y1="40" x2="16" y2="24" stroke="${body}" stroke-width="3" stroke-linecap="round"/>
+    ${eyeSVG(4,20,4.5,mood)}
+    ${eyeSVG(16,24,4.5,mood)}
+  </svg>`;
+}
+function svgCrab(body, claw, mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="52" cy="34" rx="30" ry="18" fill="${body}"/>
+    <circle cx="20" cy="18" r="12" fill="${claw}"/><circle cx="10" cy="18" r="9" fill="${claw}"/>
+    <circle cx="84" cy="18" r="12" fill="${claw}"/><circle cx="94" cy="18" r="9" fill="${claw}"/>
+    <line x1="30" y1="48" x2="18" y2="58" stroke="${body}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="50" y1="50" x2="46" y2="60" stroke="${body}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="70" y1="48" x2="80" y2="58" stroke="${body}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="36" y1="18" x2="30" y2="4" stroke="${body}" stroke-width="4" stroke-linecap="round"/>
+    <line x1="66" y1="18" x2="72" y2="4" stroke="${body}" stroke-width="4" stroke-linecap="round"/>
+    ${eyeSVG(30,4,4,mood)}
+    ${eyeSVG(72,4,4,mood)}
+  </svg>`;
+}
+
+/* ============ STAGE 1 CREATURES (v33): drawn after the real-creature check (concept doc ch.10) ============
+   Each comment lists the features that must stay true. Faces (eyes, expressions) are the allowed exaggeration. */
+function svgParrotfish(mood){
+  // Real: beak made of fused teeth, big scales, bright blue-green with pink
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20,30 L2,14 Q8,30 2,46 Z" fill="#FF8FB1"/>
+    <path d="M30,14 Q52,2 76,12 L70,16 Q52,9 34,17 Z" fill="#FF8FB1"/>
+    <ellipse cx="52" cy="31" rx="35" ry="19" fill="#2FBF9B"/>
+    <g fill="none" stroke="#7FE6C8" stroke-width="2" opacity="0.9">
+      <path d="M30,22 q5,6 10,0 q5,6 10,0 q5,6 10,0"/><path d="M26,32 q5,6 10,0 q5,6 10,0 q5,6 10,0 q5,6 10,0"/><path d="M32,42 q5,6 10,0 q5,6 10,0 q5,6 10,0"/>
+    </g>
+    <path d="M70,40 Q80,46 88,40" stroke="#FF8FB1" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M84,24 Q99,26 99,33 Q99,40 85,40 Z" fill="#E9F7F2" stroke="#9ED9C6" stroke-width="1.5"/>
+    <line x1="88" y1="32.5" x2="98.5" y2="32.5" stroke="#9ED9C6" stroke-width="1.5"/>
+    ${eyeSVG(78,24,5.5,mood)}
+  </svg>`;
+}
+function svgSeahorse(mood){
+  // Real: swims upright, curled grasping tail, tube snout, crown (coronet) on the head, ringed body
+  return `<svg viewBox="0 0 100 120" xmlns="http://www.w3.org/2000/svg">
+    <path d="M44,76 Q38,98 52,106 Q66,110 64,96 Q61,86 52,92" stroke="#F2A33A" stroke-width="9" fill="none" stroke-linecap="round"/>
+    <ellipse cx="30" cy="58" rx="7" ry="11" fill="#FFE2A8"/>
+    <ellipse cx="46" cy="58" rx="15" ry="24" fill="#F2A33A"/>
+    <ellipse cx="51" cy="60" rx="8" ry="17" fill="#FFD08A"/>
+    <path d="M47,48 h9 M46,56 h11 M46,64 h11 M47,72 h9" stroke="#E08A22" stroke-width="2"/>
+    <circle cx="52" cy="26" r="14" fill="#F2A33A"/>
+    <rect x="60" y="24" width="26" height="9" rx="4.5" fill="#F2A33A"/>
+    <polygon points="44,15 48,4 52,13 56,5 59,15" fill="#E08A22"/>
+    ${eyeSVG(55,22,5,mood)}
+  </svg>`;
+}
+function svgMorayEel(mood){
+  // Real: long snake-like body, NO pectoral fins, one long fin from behind the head round the tail, mottled.
+  // Mouth slightly open (they breathe that way). No teeth shown.
+  const spine = 'M13,40 Q24,24 38,34 Q54,46 68,32 Q76,26 82,27';
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="${spine}" stroke="#8A6A22" stroke-width="22" fill="none" stroke-linecap="round" transform="translate(0,-2)"/>
+    <path d="${spine}" stroke="#D8B24E" stroke-width="15" fill="none" stroke-linecap="round"/>
+    <g fill="#7A5A1E" opacity="0.75">
+      <circle cx="18" cy="34" r="2.4"/><circle cx="26" cy="30" r="2.8"/><circle cx="33" cy="35" r="2.2"/><circle cx="44" cy="39" r="2.8"/>
+      <circle cx="53" cy="40" r="2.2"/><circle cx="61" cy="35" r="2.6"/><circle cx="70" cy="31" r="2"/>
+    </g>
+    <ellipse cx="86" cy="27" rx="13" ry="10" fill="#D8B24E"/>
+    <path d="M90,31 L99,29 L99,34 Z" fill="#5A3E10"/>
+    ${eyeSVG(87,22,4.5,mood)}
+  </svg>`;
+}
+function svgMantaRay(mood){
+  // Seen from above, head to the right. Real: wing-like triangular fins, the two cephalic fins in front of the head,
+  // dark back with pale shoulder marks that curve back like 八 (reef manta), white underside (the lower wing tip shows it), thin tail
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <line x1="30" y1="30" x2="1" y2="30" stroke="#2E3B55" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M86,30 Q66,6 40,1 Q46,20 30,30 Q46,40 40,59 Q66,54 86,30 Z" fill="#2E3B55"/>
+    <path d="M40,59 Q48,52 52,46 Q56,52 50,57 Z" fill="#F4F7FB"/>
+    <path d="M78,22 Q68,18 58,22 Q66,24 70,28 Z" fill="#C9D3E2"/>
+    <path d="M78,38 Q68,42 58,38 Q66,36 70,32 Z" fill="#C9D3E2"/>
+    <path d="M84,22 Q94,16 96,22 Q94,26 88,26" fill="#2E3B55"/>
+    <path d="M84,38 Q94,44 96,38 Q94,34 88,34" fill="#2E3B55"/>
+    ${eyeSVG(84,25,3.6,mood)}
+    ${eyeSVG(84,35,3.6,mood)}
+  </svg>`;
+}
+function svgWhaleShark(mood){
+  // Real: blue-grey back with white spots and pale stripes (checkerboard), white belly,
+  // broad flat head with a very wide mouth right at the front, ridges along the side, tall shark tail
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M14,30 L2,8 Q8,30 4,48 Z" fill="#4F7396"/>
+    <path d="M44,16 L52,3 L60,16 Z" fill="#4F7396"/>
+    <path d="M14,30 Q30,12 62,13 Q92,14 97,26 L97,34 Q90,46 62,46 Q30,46 14,30 Z" fill="#4F7396"/>
+    <path d="M18,32 Q40,46 64,46 Q90,46 97,34 L97,36 Q86,49 62,49 Q34,48 18,32 Z" fill="#F2F5F8"/>
+    <path d="M24,33 Q50,42 92,38" stroke="#F2F5F8" stroke-width="5" fill="none" opacity="0.95"/>
+    <g stroke="#DCE7F2" stroke-width="1.6" opacity="0.9"><line x1="34" y1="17" x2="34" y2="36"/><line x1="46" y1="15" x2="46" y2="38"/><line x1="58" y1="14" x2="58" y2="38"/></g>
+    <g fill="#FFFFFF"><circle cx="28" cy="24" r="1.8"/><circle cx="40" cy="20" r="1.8"/><circle cx="40" cy="30" r="1.8"/><circle cx="52" cy="21" r="1.8"/>
+      <circle cx="52" cy="31" r="1.8"/><circle cx="64" cy="20" r="1.8"/><circle cx="66" cy="30" r="1.8"/><circle cx="76" cy="22" r="1.6"/><circle cx="84" cy="20" r="1.4"/><circle cx="80" cy="30" r="1.6"/></g>
+    <path d="M28,29 Q56,26 88,25" stroke="#3E5E80" stroke-width="1.6" fill="none" opacity="0.8"/>
+    <path d="M86,37 Q93,38 97,35" stroke="#25405C" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    ${eyeSVG(88,26,3.8,mood)}
+  </svg>`;
+}
+function svgAnglerfish(mood){
+  // Real (a female; only females carry the light): glowing lure on a rod from the forehead, big crescent mouth,
+  // big head, dark grey-brown body. Kept brown but one step lighter with a pale outline so it reads on a small screen.
+  // Teeth kept few and small so it is not scary.
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="92" cy="9" r="8" fill="#FFF3A6" opacity="0.45"/>
+    <path d="M56,14 Q70,-4 90,8" stroke="#A88E78" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+    <circle cx="92" cy="9" r="4.2" fill="#FFE45C" stroke="#FFFFFF" stroke-width="1.2"/>
+    <path d="M31,34 Q14,18 5,22 Q10,34 5,46 Q14,50 31,34 Z" fill="#8A6A52" stroke="#F1E2D2" stroke-width="2"/>
+    <circle cx="54" cy="34" r="25" fill="#8A6A52" stroke="#F1E2D2" stroke-width="2.5"/>
+    <path d="M48,57 L42,60 L54,58 Z" fill="#7A5C46"/>
+    <path d="M62,40 Q72,52 84,42 Q76,44 62,40 Z" fill="#3E2C22"/>
+    <g fill="#FFFFFF"><polygon points="66,41.5 68,45 70,42.3"/><polygon points="73,43 75,46.5 77,43.4"/></g>
+    ${eyeSVG(66,26,4.8,mood)}
+  </svg>`;
+}
+function svgLanternfish(mood){
+  // Real: slim silver-blue body (shallower-living kinds are blue-green-silver), very big eye, big mouth,
+  // rows of small glowing spots (photophores) along the belly and sides. Pale outline so it reads on the blue background.
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M18,30 L3,19 L8,30 L3,41 Z" fill="#6F92C4"/>
+    <path d="M44,18 L52,10 L58,18 Z" fill="#6F92C4"/>
+    <path d="M16,30 Q34,15 66,16 Q90,17 96,28 Q90,40 66,42 Q34,44 16,30 Z" fill="#B9CDE6" stroke="#F2F7FF" stroke-width="3"/>
+    <path d="M16,30 Q34,15 66,16 Q90,17 96,28 Q80,24 60,24 Q36,25 16,30 Z" fill="#6F92C4"/>
+    <path d="M84,33 L97,30" stroke="#3B5A88" stroke-width="1.8" stroke-linecap="round"/>
+    <g fill="#7FF5FF" stroke="#FFFFFF" stroke-width="0.8">
+      <circle cx="30" cy="36" r="2"/><circle cx="38" cy="38" r="2"/><circle cx="46" cy="39" r="2"/><circle cx="54" cy="39.5" r="2"/><circle cx="62" cy="39" r="2"/><circle cx="70" cy="38" r="2"/>
+      <circle cx="40" cy="31" r="1.6"/><circle cx="50" cy="32" r="1.6"/><circle cx="60" cy="32" r="1.6"/>
+    </g>
+    ${eyeSVG(82,25,7,mood)}
+  </svg>`;
+}
+function svgDumboOctopus(mood){
+  // Real: two ear-like fins on the head, webbed arms that open like an umbrella, soft round pink-white body.
+  // Nothing taken from the cartoon elephant the name comes from.
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="22" cy="17" rx="12" ry="7" fill="#F48FA8" transform="rotate(-25 22 17)"/>
+    <ellipse cx="78" cy="17" rx="12" ry="7" fill="#F48FA8" transform="rotate(25 78 17)"/>
+    <path d="M26,30 Q24,48 14,56 Q22,52 30,57 Q36,51 42,58 Q50,52 58,58 Q64,51 70,57 Q78,52 86,56 Q76,48 74,30 Z" fill="#F7B3C4"/>
+    <g stroke="#E78AA2" stroke-width="1.6" fill="none" opacity="0.8"><path d="M40,36 L36,54"/><path d="M50,36 L50,55"/><path d="M60,36 L64,54"/></g>
+    <ellipse cx="50" cy="24" rx="25" ry="20" fill="#FBC6D3"/>
+    <ellipse cx="44" cy="15" rx="8" ry="4" fill="#FFFFFF" opacity="0.45"/>
+    ${eyeSVG(42,28,4.5,mood)}
+    ${eyeSVG(58,28,4.5,mood)}
+  </svg>`;
+}
+function svgGiantIsopod(mood){
+  // Real: like a giant pill bug: round back with overlapping armor plates on a flat body, 7 pairs of legs
+  // (7 short rounded legs on this side), shrimp-like tail fan, a pair of dark eyes, short antennae.
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="#9C86AE" stroke-width="3.2" stroke-linecap="round">
+      <line x1="26" y1="42" x2="24" y2="50"/><line x1="34" y1="43" x2="33" y2="51"/><line x1="42" y1="44" x2="42" y2="52"/><line x1="50" y1="44" x2="51" y2="52"/>
+      <line x1="58" y1="44" x2="60" y2="52"/><line x1="66" y1="43" x2="69" y2="51"/><line x1="74" y1="42" x2="78" y2="49"/>
+    </g>
+    <path d="M18,34 L4,28 L3,38 L4,46 L18,42 Z" fill="#CDBBDC" stroke="#A891BC" stroke-width="1.5"/>
+    <path d="M14,40 Q20,12 52,10 Q82,10 90,32 Q90,42 80,43 L22,43 Q14,43 14,40 Z" fill="#E3D6EC"/>
+    <g stroke="#A891BC" stroke-width="2" fill="none">
+      <path d="M26,40 Q27,20 31,15"/><path d="M36,42 Q37,18 40,12"/><path d="M46,43 Q47,16 49,10"/><path d="M56,43 Q57,16 59,10"/><path d="M66,43 Q67,18 69,13"/><path d="M75,42 Q76,24 78,18"/>
+    </g>
+    <path d="M88,30 Q96,22 98,16" stroke="#A891BC" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+    ${eyeSVG(84,29,4.2,mood)}
+  </svg>`;
+}
+function svgSeaPig(mood){
+  // Real: plump, see-through pink body, walks on leg-like tube feet, two pairs of feeler-like bumps on the back.
+  // Real sea pigs have no eyes: the face is the allowed exaggeration.
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#F2A0B4">
+      <rect x="18" y="38" width="6" height="14" rx="3"/><rect x="30" y="40" width="6" height="14" rx="3"/><rect x="42" y="41" width="6" height="14" rx="3"/>
+      <rect x="54" y="41" width="6" height="14" rx="3"/><rect x="66" y="40" width="6" height="14" rx="3"/><rect x="78" y="38" width="6" height="14" rx="3"/>
+    </g>
+    <path d="M58,16 Q60,4 64,2" stroke="#F2A0B4" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M68,17 Q72,6 77,4" stroke="#F2A0B4" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <ellipse cx="52" cy="30" rx="42" ry="16" fill="#F8C4D1" opacity="0.92"/>
+    <ellipse cx="46" cy="32" rx="20" ry="6" fill="#E9A3B6" opacity="0.45"/>
+    <ellipse cx="40" cy="22" rx="14" ry="4" fill="#FFFFFF" opacity="0.5"/>
+    <path d="M93,32 q4,-2 6,1 M93,36 q4,0 5,4" stroke="#F2A0B4" stroke-width="2" fill="none" stroke-linecap="round"/>
+    ${eyeSVG(82,26,4.2,mood)}
+  </svg>`;
+}
+
+/* ============ v43: TEMPORARY ART for Rice Paddy and Tide Pool ============
+   Simple stand-in shapes so the rules, the change of form and the water/air zones can be tried now.
+   They are redrawn in v44 after the real-creature check (concept doc ch.10). Dark creatures get a light outline (spec 2.11). */
+function svgTadpole(mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M46,30 Q26,14 2,22 Q16,30 2,38 Q26,46 46,30 Z" fill="#A08E68" stroke="#F1E2D2" stroke-width="2"/>
+    <ellipse cx="64" cy="30" rx="26" ry="20" fill="#7A6A4A" stroke="#F1E2D2" stroke-width="2.5"/>
+    ${eyeSVG(78,24,5,mood)}
+  </svg>`;
+}
+function svgFrog(mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M24,46 Q6,58 28,57 L44,57" stroke="#4E9A34" stroke-width="8" fill="none" stroke-linecap="round"/>
+    <ellipse cx="50" cy="38" rx="34" ry="17" fill="#6CC24A"/>
+    <ellipse cx="58" cy="45" rx="22" ry="8" fill="#E6F4C4"/>
+    <path d="M66,50 L70,58 M74,49 L80,57" stroke="#4E9A34" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="70" cy="22" r="12" fill="#6CC24A"/>
+    ${eyeSVG(72,21,5.5,mood)}
+    <path d="M80,37 Q87,39 85,44" stroke="#2F5E20" stroke-width="2" fill="none" stroke-linecap="round"/>
+  </svg>`;
+}
+function svgDragonflyNymph(mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M30,40 L22,54 M46,42 L44,56 M62,40 L68,54" stroke="#6E7A3A" stroke-width="4" stroke-linecap="round"/>
+    <ellipse cx="40" cy="32" rx="32" ry="12" fill="#8C9A4C" stroke="#F1EFD2" stroke-width="2"/>
+    <path d="M20,26 L20,38 M32,22 L32,42" stroke="#6E7A3A" stroke-width="2.5"/>
+    <circle cx="78" cy="30" r="13" fill="#8C9A4C" stroke="#F1EFD2" stroke-width="2"/>
+    ${eyeSVG(82,26,5,mood)}
+  </svg>`;
+}
+function svgDragonfly(mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="54" cy="16" rx="22" ry="8" fill="#E6F6FF" stroke="#8EC3DE" stroke-width="1.5" transform="rotate(-12 54 16)"/>
+    <ellipse cx="66" cy="18" rx="22" ry="8" fill="#E6F6FF" stroke="#8EC3DE" stroke-width="1.5" transform="rotate(10 66 18)"/>
+    <rect x="4" y="30" width="62" height="7" rx="3.5" fill="#E2483A"/>
+    <ellipse cx="72" cy="33" rx="10" ry="8" fill="#C9542E"/>
+    <circle cx="86" cy="31" r="9" fill="#E2483A"/>
+    ${eyeSVG(89,28,4.5,mood)}
+  </svg>`;
+}
+function svgWaterBug(mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M30,44 L18,56 M48,46 L42,58" stroke="#6E5536" stroke-width="4" stroke-linecap="round"/>
+    <path d="M74,36 Q90,46 94,34 M70,40 Q84,54 92,46" stroke="#6E5536" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <ellipse cx="48" cy="32" rx="38" ry="15" fill="#8A6E4A" stroke="#F1E2D2" stroke-width="2.5"/>
+    <path d="M14,32 L60,32" stroke="#F1E2D2" stroke-width="1.5" opacity="0.6"/>
+    ${eyeSVG(78,28,5,mood)}
+  </svg>`;
+}
+function svgAnemone(mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <g fill="#F07A8A">${[14,24,34,44,54,64,74,84].map((x,i)=>`<ellipse cx="${x}" cy="${12+(i%2)*4}" rx="6" ry="11"/>`).join('')}</g>
+    <path d="M18,24 Q50,14 82,24 L76,56 Q50,60 24,56 Z" fill="#D9344A"/>
+    ${eyeSVG(40,38,5,mood)}${eyeSVG(60,38,5,mood)}
+  </svg>`;
+}
+function svgLimpet(mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <ellipse cx="50" cy="50" rx="40" ry="8" fill="#E8C9A0"/>
+    <path d="M10,48 Q30,8 54,10 Q76,12 90,48 Z" fill="#A89278"/>
+    <path d="M30,46 L48,14 M50,46 L54,12 M70,46 L60,14" stroke="#E6DCCB" stroke-width="3" stroke-linecap="round"/>
+    ${eyeSVG(16,50,4,mood)}
+  </svg>`;
+}
+function svgNudibranch(mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4,44 Q10,24 44,24 Q82,22 92,38 Q94,48 80,48 L10,50 Q2,50 4,44 Z" fill="#2F6FD8"/>
+    <path d="M14,42 Q46,32 86,40" stroke="#FFD84A" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M18,26 Q14,14 22,18 M20,24 Q26,12 30,18" stroke="#FF8A3D" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M74,24 L70,12 M78,24 L80,12 M82,26 L88,16" stroke="#FFD84A" stroke-width="3" stroke-linecap="round"/>
+    <path d="M78,22 L74,8 M82,24 L86,10" stroke="#FF8A3D" stroke-width="3" stroke-linecap="round"/>
+    ${eyeSVG(16,34,4.5,mood)}
+  </svg>`;
+}
+function svgOctopus(mood){
+  return `<svg viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
+    <g stroke="#D9573A" stroke-width="7" fill="none" stroke-linecap="round">
+      <path d="M30,40 Q14,52 6,44"/><path d="M38,44 Q32,58 20,56"/><path d="M50,46 Q52,60 64,56"/><path d="M60,42 Q76,52 88,44"/>
+    </g>
+    <ellipse cx="46" cy="26" rx="26" ry="20" fill="#E8693F"/>
+    <circle cx="36" cy="18" r="3" fill="#F7A889"/><circle cx="58" cy="14" r="2.5" fill="#F7A889"/>
+    ${eyeSVG(40,30,5,mood)}${eyeSVG(56,30,5,mood)}
+  </svg>`;
+}
+
+/* ============ SPECIES (real English names; one list per world id) ============ */
+const SPECIES = {
+  ocean:[
+    {key:'clownfish', name:'Clownfish', jp:"カクレクマノミ", fact:{ja:"イソギンチャクの中で暮らす魚。体のぬるぬるのおかげで、イソギンチャクの毒にやられない。生まれた時はみんなオスで、むれで一番大きな子がメスになる。", en:"A small orange fish that lives in a sea anemone. Its slimy skin keeps it safe from the anemone's sting."}, body:'fish', draw:(mood)=>svgFish('#FF7A45','#FFF5E8','#FF9F6B',mood)},
+    {key:'seasnail',  name:'Sea Snail', jp:"巻き貝", fact:{ja:"ざらざらした小さな歯がならぶ舌で、岩の表面をけずって食べる。殻の入り口をふたでしめられるものが多い。空いた殻は、ヤドカリの家になる。", en:"It scrapes food off rocks with a tongue covered in tiny teeth. Many can shut their shell with a little door. Empty shells become homes for hermit crabs."}, body:'snail', draw:(mood)=>svgSnail('#E8B98C','#7B5AA6',mood)},
+    {key:'hermitcrab',name:'Hermit Crab', jp:"ヤドカリ", fact:{ja:"おなかが柔らかいので、空いた巻き貝の殻を借りて身を守る。体が大きくなると、もっと大きな殻に引っ越しする。", en:"A crab with a soft belly that borrows an empty snail shell for a home. When it grows, it moves to a bigger shell."}, body:'crab', draw:(mood)=>svgHermitCrab('#D9C3A0','#B89A70','#E07A3E','#C9491F',mood)},
+    {key:'seaturtle', name:'Sea Turtle', jp:"ウミガメ", fact:{ja:"海で暮らすカメ。陸のカメと違って、頭を甲羅の中に引っこめられない。水の中で息はできないので、海の上に顔を出して息を吸う。", en:"A turtle that lives in the sea. Unlike land turtles, it cannot pull its head into its shell. It swims up to breathe air."}, hidden:true, body:'turtle', draw:(mood)=>svgTurtle('#2E8B77','#3EA88F','#1F5C4E',mood)},
+    {key:'starfish',  name:'Sea Star', jp:"ヒトデ", fact:{ja:"腕の先に、明るいか暗いかが分かる小さな目がある。腕が取れても、また生えてくる。", en:"A sea star has a tiny eye at the tip of each arm. If it loses an arm, it can grow a new one."}, hidden:true, body:'star', draw:(mood)=>svgStar('#FF6F59','#FFD9A0',mood)},
+  ],
+  river:[
+    {key:'koi',      name:'Koi', jp:"ニシキゴイ", fact:{ja:"今のニシキゴイは、日本で米作りをしていた人たちが、色のきれいなコイを育てて生み出した。とても長生きで、40年くらい生きることもある。", en:"Koi are colorful carp first bred by rice farmers in Japan. They can live for about 40 years."}, body:'fish', draw:(mood)=>svgFish('#F4F1EA','#FF6B6B','#D94A4A',mood)},
+    {key:'crayfish', name:'Crayfish', jp:"アメリカザリガニ", fact:{ja:"エビやロブスターの仲間。今、日本の川や池にいるザリガニの多くは、100年ほど前にアメリカから連れてこられて日本中に広がった、アメリカザリガニ。元からいた生き物を食べてしまうので、飼っている子を川や池に放すことは、決まりで禁止されている。", en:"A cousin of shrimp and lobsters. Most crayfish in Japan's rivers and ponds today are red swamp crayfish, brought from America about 100 years ago. Because they eat the animals that lived there before, it is against the rules to let a pet crayfish go in a river or pond."}, body:'crab', draw:(mood)=>svgCrayfish('#B23A3A','#8A2424',mood)},
+    {key:'riversnail',name:'River Snail', jp:"タニシ", fact:{ja:"たいていの巻き貝は卵を産むが、タニシは卵を産まずに、殻のある赤ちゃんを産む。水の中の小さな食べ物を、こして食べるので、水がきれいになる。", en:"Unlike most snails, it gives birth to baby snails instead of laying eggs. It filters tiny bits of food from the water, which helps keep it clean."}, body:'snail', draw:(mood)=>svgSnail('#8AA76B','#4C7A3D',mood)},
+    {key:'catfish',  name:'Giant Catfish', jp:"ナマズのなかま", fact:{ja:"口の周りの長いひげで、味を感じる。体じゅうに味を感じるところがあるので、濁った水の中でも餌を見つけられる。", en:"A catfish tastes with its long whiskers. It has taste buds all over its body, so it can find food even in muddy water."}, hidden:true, body:'fish', draw:(mood)=>svgCatfish('#5C5C5C','#DADADA','#3E3E3E',mood)},
+    {key:'giantsalamander', name:'Giant Salamander', jp:"オオサンショウウオ", fact:{ja:"日本だけに住む両生類。大きいものは1.5メートルにもなり、世界でも最大級。3千万年前から姿がほとんど変わらず、「生きた化石」と呼ばれる。", en:"Found only in Japan, it is one of the biggest amphibians in the world, up to 1.5 m long. It has hardly changed for 30 million years, so it is called a \"living fossil\"."}, hidden:true, body:'turtle', draw:svgGiantSalamander},
+  ],
+  suisou:[
+    {key:'betta',     name:'Betta', jp:"ベタ", fact:{ja:"水面に口を出して、空気から直接息ができる。オスは水面に泡を付けて巣を作り、卵を守る。", en:"A betta can gulp air from the surface. The father builds a nest of bubbles and guards the eggs in it."}, body:'fish', draw:(mood)=>svgBetta('#7A2E8C','#B23FD1','#FFD1F0',mood)},
+    {key:'guppy',     name:'Guppy', jp:"グッピー", fact:{ja:"南アメリカの小川に住む小さな魚。オスは色が鮮やかで、メスはオスより大きく地味な色。卵ではなく赤ちゃんを産む。", en:"A small fish from South American streams. Males are bright and colorful; females are bigger and plainer. Guppies give birth to live babies."}, body:'fish', draw:(mood)=>svgFish('#3E7CB8','#FFE8A3','#5FA8E0',mood)},
+    {key:'neontetra', name:'Neon Tetra', jp:"ネオンテトラ", fact:{ja:"南アメリカの、アマゾン川に流れこむ小川に住む。青く光る筋は、休む夜には色が薄くなる。", en:"A tiny fish from Amazon streams. Its shining blue stripe fades at night while it rests."}, body:'fish', draw:(mood)=>svgFish('#26323F','#00E5FF','#7FE9FF',mood)},
+    {key:'angelfish', name:'Angelfish', jp:"エンゼルフィッシュ", fact:{ja:"南アメリカのアマゾン川などに住む魚。薄くて背の高い体で、水草や木の根の間に隠れる。お父さんとお母さんが一緒に卵を守る。", en:"A fish from the Amazon. Its thin, tall body lets it hide among plants and roots. Both parents guard their eggs together."}, hidden:true, body:'fish', draw:(mood)=>svgAngelfish('#D8D0C0','#6E6455','#A79C86',mood)},
+    {key:'cherryshrimp', name:'Cherry Shrimp', jp:"レッドチェリーシュリンプ", fact:{ja:"野生では茶色っぽい小さなエビ。人が赤い色の子を選んで育て、真っ赤になった。水草や石に付いた小さな食べ物を食べる。", en:"In the wild this tiny shrimp is brownish. People bred the red ones to make it bright red. It nibbles tiny food off plants and stones."}, hidden:true, body:'shrimp', draw:(mood)=>svgShrimp('#D9455F','#FFB6C1',mood)},
+  ],
+  coral:[
+    {key:'parrotfish', name:'Parrotfish', jp:"ブダイ", fact:{ja:"くちばしのような硬い歯で、サンゴに付いた食べ物をけずって食べる。かみくだいたサンゴはうんちになって出てきて、白い砂浜の砂の一部になる。", en:"It scrapes food off coral with its beak-like teeth. The crushed coral comes out in its poop as sand, and becomes part of white sandy beaches."}, body:'fish', draw:svgParrotfish},
+    {key:'seahorse',   name:'Seahorse', jp:"タツノオトシゴ", fact:{ja:"卵を育てるのはお父さん。お母さんがお父さんのおなかの袋に卵を入れ、お父さんが赤ちゃんを産む。", en:"Seahorse dads have the babies! The mother puts her eggs into a pouch on the father's belly, and the father gives birth."}, body:'snail', draw:svgSeahorse},
+    {key:'morayeel',   name:'Moray Eel', jp:"ウツボ", fact:{ja:"いつも口を開けたり閉じたりしているのは、怒っているからではない。口から水を入れて、息をしている。", en:"A moray opens and closes its mouth all the time. It is not angry; it is pumping water over its gills to breathe."}, body:'fish', draw:svgMorayEel},
+    {key:'mantaray',   name:'Manta Ray', jp:"ナンヨウマンタ", fact:{ja:"大きな体なのに、食べるのは水の中の小さなプランクトン。サンゴ礁では、小さな魚に体の汚れを取ってもらうために、じっと止まることがある。", en:"Even though it is huge, it eats tiny plankton. On the reef, it hovers still so small fish can clean its skin."}, hidden:true, body:'fish', draw:svgMantaRay},
+    {key:'whaleshark', name:'Whale Shark', jp:"ジンベエザメ", fact:{ja:"世界で一番大きな魚。でも食べるのは、小さなプランクトン。水ごと吸いこんで、こして食べる。白い点の模様は1匹ずつ違う。", en:"The biggest fish in the world, yet it eats tiny plankton by filtering water. Each one has its own pattern of white spots."}, hidden:true, body:'fish', draw:svgWhaleShark},
+  ],
+  deepsea:[
+    {key:'anglerfish',  name:'Anglerfish', jp:"チョウチンアンコウ", fact:{ja:"頭の先の光は、中に住む光る小さな生き物(バクテリア)の明かり。この光で獲物を誘う。光を持つのはメスだけ。", en:"The light on its head comes from tiny glowing bacteria living inside. It uses the light to attract food. Only the females have it."}, body:'fish', draw:svgAnglerfish},
+    {key:'lanternfish', name:'Lanternfish', jp:"ハダカイワシ", fact:{ja:"昼は深い海に隠れ、夜になると海の上の方まで上がってきて、食べ物を食べる。この毎日の行き来は、地球で一番大きな生き物の大移動の一つ。", en:"It hides deep down by day and swims up toward the surface at night to eat. This daily trip is one of the biggest animal migrations on Earth."}, body:'fish', draw:svgLanternfish},
+    {key:'dumbooctopus',name:'Dumbo Octopus', jp:"ジュウモンジダコのなかま", fact:{ja:"タコの中で一番深い海に住む仲間。耳のようなひれをパタパタ動かして泳ぎ、獲物は丸のみにする。", en:"One of the deepest-living octopuses. It swims by flapping its ear-like fins, and swallows its food whole."}, body:'turtle', draw:svgDumboOctopus},
+    {key:'giantisopod', name:'Giant Isopod', jp:"ダイオウグソクムシ", fact:{ja:"海の底に落ちてきた魚などを食べる「深海の掃除屋」。日本の水族館では、5年以上何も食べずに生きた子がいた。", en:"A deep-sea cleaner that eats dead fish that sink to the sea floor. One at an aquarium in Japan lived more than 5 years without eating."}, hidden:true, body:'crab', draw:svgGiantIsopod},
+    {key:'seapig',      name:'Sea Pig', jp:"センジュナマコ", fact:{ja:"ナマコの仲間では、めずらしく足で海の底を歩く。上から落ちてくるマリンスノーを食べる。何百匹も集まっていることがある。", en:"One of the only sea cucumbers that walks on legs. It eats marine snow that falls to the sea floor, and is sometimes found in groups of hundreds."}, hidden:true, body:'snail', draw:svgSeaPig},
+  ],
+  /* v43: Rice Paddy and Tide Pool. Art and facts are temporary (v44 after the real-creature check).
+     zone (only used in worlds with a water surface): 'water' (default) / 'air' / 'both'.
+     forms: from that Stage on, the creature has another name and look (a feature of the creature, not a rule of the world). */
+  paddy:[
+    {key:'tadpole', name:'Tadpole', jp:"オタマジャクシ", fact:{ja:"(説明は次の版で、本物の生き物を調べてから書きます)", en:"(The real-animal notes come in the next version, after checking the real creature.)"}, body:'fish', zone:'water', draw:svgTadpole,
+      forms:[{stage:10, name:'Frog', jp:"カエル", emoji:'🐸', body:'turtle', zone:'both', draw:svgFrog}]},
+    {key:'ricefish', name:'Japanese Rice Fish', jp:"メダカ", fact:{ja:"(説明は次の版で、本物の生き物を調べてから書きます)", en:"(The real-animal notes come in the next version, after checking the real creature.)"}, body:'fish', zone:'water', draw:(mood)=>svgFish('#D8CBA0','#FFF6DA','#BFAE7E',mood)},
+    {key:'pondloach', name:'Pond Loach', jp:"ドジョウ", fact:{ja:"(説明は次の版で、本物の生き物を調べてから書きます)", en:"(The real-animal notes come in the next version, after checking the real creature.)"}, body:'fish', zone:'water', draw:(mood)=>svgCatfish('#A08660','#F1E2C2','#7A6646',mood)},
+    {key:'giantwaterbug', name:'Giant Water Bug', jp:"タガメ", fact:{ja:"(説明は次の版で、本物の生き物を調べてから書きます)", en:"(The real-animal notes come in the next version, after checking the real creature.)"}, hidden:true, body:'crab', zone:'water', draw:svgWaterBug},
+    {key:'dragonflynymph', name:'Dragonfly Nymph', jp:"ヤゴ", fact:{ja:"(説明は次の版で、本物の生き物を調べてから書きます)", en:"(The real-animal notes come in the next version, after checking the real creature.)"}, hidden:true, body:'shrimp', zone:'water', draw:svgDragonflyNymph,
+      forms:[{stage:10, name:'Dragonfly', jp:"トンボ", emoji:'✨', body:'fish', zone:'air', draw:svgDragonfly}]},
+  ],
+  tidepool:[
+    {key:'seaanemone', name:'Sea Anemone', jp:"イソギンチャク", fact:{ja:"(説明は次の版で、本物の生き物を調べてから書きます)", en:"(The real-animal notes come in the next version, after checking the real creature.)"}, body:'snail', draw:svgAnemone},
+    {key:'goby', name:'Goby', jp:"ハゼ", fact:{ja:"(説明は次の版で、本物の生き物を調べてから書きます)", en:"(The real-animal notes come in the next version, after checking the real creature.)"}, body:'fish', draw:(mood)=>svgFish('#B89A72','#F4E6CF','#9C7E58',mood)},
+    {key:'limpet', name:'Limpet', jp:"カサガイ", fact:{ja:"(説明は次の版で、本物の生き物を調べてから書きます)", en:"(The real-animal notes come in the next version, after checking the real creature.)"}, body:'snail', draw:svgLimpet},
+    {key:'nudibranch', name:'Nudibranch', jp:"ウミウシ", fact:{ja:"(説明は次の版で、本物の生き物を調べてから書きます)", en:"(The real-animal notes come in the next version, after checking the real creature.)"}, hidden:true, body:'snail', draw:svgNudibranch},
+    {key:'octopus', name:'Octopus', jp:"タコ", fact:{ja:"(説明は次の版で、本物の生き物を調べてから書きます)", en:"(The real-animal notes come in the next version, after checking the real creature.)"}, hidden:true, body:'turtle', draw:svgOctopus},
+  ]
+};
+
+/* Shown small in the corner of the Save screen, so a bug report can say which version it was
+   (GitHub Pages: a phone may keep showing an older copy). */
+const APP_VERSION = 'v43';
+document.getElementById('appVersion').textContent = 'Dance Ocean ' + APP_VERSION;
+
+/* ============ WORLDS ============
+   One entry per world. The order of this list IS the unlock order:
+   a world can only open once the world before it is open.
+   To add a world later: add one entry here, its creatures to SPECIES, and (optionally) its music to MUSIC.
+   unlock.type: 'start' (open from the beginning) / 'gems' (buy with 💎) / 'dex' (opens by itself when Field Notes reach the count)
+   care: one of the four care types in CARE_TYPES. */
+const WORLDS = [
+  { id:'ocean', emoji:'🌊', name:'Ocean', jp:'海', care:'listen',
+    unlock:{type:'start'},
+    meter:{label:'Happiness', cls:'happy', start:0},
+    actionLabel:'🍚 Feed All',
+    bg:'radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.18),transparent 55%),linear-gradient(180deg,var(--ocean-a),var(--ocean-b) 45%,var(--ocean-c))' },
+  { id:'river', emoji:'🏞', name:'River', jp:'川', care:'clean',
+    unlock:{type:'gems', cost:25}, unlockMessage:"A totally different ecosystem — old habits won't help here!",
+    meter:{label:'Water Clarity', cls:'clarity', start:100},
+    actionLabel:'🧹 Clean',
+    bg:'radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.2),transparent 55%),linear-gradient(180deg,var(--river-a),var(--river-b) 45%,var(--river-c))' },
+  { id:'suisou', emoji:'🐠', name:'Tank', jp:'水槽', care:'drift',
+    unlock:{type:'gems', cost:150}, unlockMessage:'A tank made by people, not nature. The rules change again!',
+    meter:{label:'Comfort', cls:'happy', start:70},
+    actionLabel:'🌡️ Adjust',
+    bg:'radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.25),transparent 55%),linear-gradient(180deg,#CFEFFF,#3AA8C9 45%,#1B5E76)' },
+  { id:'coral', emoji:'🪸', name:'Coral Reef', jp:'サンゴ礁', care:'listen',
+    unlock:{type:'dex', count:10}, bgOpacity:0.85,
+    meter:{label:'Happiness', cls:'happy', start:0},
+    actionLabel:'🍚 Feed All',
+    bg:'radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.3),transparent 55%),linear-gradient(180deg,#D4F7F2,#55C6D8 45%,#2196B8)' },
+  /* Deep Sea is a deep but clearly visible blue, not near-black: it must read well on a small phone
+     outdoors. The depth comes from marine snow and the creatures, not from darkness. */
+  { id:'deepsea', emoji:'🌑', name:'Deep Sea', jp:'深海', care:'quiet', bubbles:false,
+    unlock:{type:'dex', count:14}, bgOpacity:0.85,
+    meter:{label:'Calm', cls:'calm', start:50},
+    actionLabel:'🤫 Quiet',
+    bg:'radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.22),transparent 55%),linear-gradient(180deg,#8EC1F2,#4A7FD0 45%,#2F5FB2)' },
+  /* v43 Rice Paddy: half sky, half water. surface = where the water starts (% from the top of the tank).
+     Clean care with the meter named Water Level (paddy water is muddy by nature, so no murk: murk:false). */
+  { id:'paddy', emoji:'🌾', name:'Rice Paddy', jp:'田んぼ', care:'clean', murk:false, surface:33,
+    unlock:{type:'dex', count:18}, bgOpacity:0.8,
+    firstVisitMessage:{en:'Farmers fill rice paddies with water, and lots of little friends move in.', ja:'田んぼには、農家の人が水を入れる。そこに、小さな生き物がたくさん住みつく。'},
+    meter:{label:'Water Level', cls:'water', start:100},
+    actionLabel:'💧 Water',
+    bg:'linear-gradient(180deg,#9FD6FF 0%,#D2EEFF 33%,#B6DC8E 33%,#8CC26C 62%,#629A53 100%)' },
+  /* v43 Tide Pool: drift care; the button is a wave bringing fresh sea water. */
+  { id:'tidepool', emoji:'🐚', name:'Tide Pool', jp:'磯', care:'drift',
+    unlock:{type:'dex', count:22}, bgOpacity:0.8,
+    firstVisitMessage:{en:'When the tide goes out, little pools of sea water are left among the rocks.', ja:'潮が引くと、岩の間に海の水が残って、小さな池ができる。'},
+    meter:{label:'Comfort', cls:'happy', start:70},
+    actionLabel:'🌊 Wave',
+    bg:'radial-gradient(ellipse at 50% 0%,rgba(255,255,255,.3),transparent 55%),linear-gradient(180deg,#D8F6EC,#62C4B0 45%,#2F8F8C)' }
+];
+
+/* ============ CARE TYPES (the four rules, reused by every world) ============ */
+const CARE_TYPES = {
+  // Music fills the meter; a full meter gives 💎. The meter never drops.
+  listen:{ actionGain:6, haltBelow:null, fillsWithMusic:true },
+  // The water gets dirtier over time (faster with more / bigger creatures). Clean to recover.
+  clean:{ actionGain:15, haltBelow:40, murky:true,
+    tick:(w)=>{
+      const totalSize = w.creatures.reduce((sum,c)=>sum+STAGE_SIZES[c.stage], 0);
+      const decay = 1 + Math.floor(totalSize/150);
+      w.meter = Math.max(0, w.meter - decay);
+    } },
+  // The meter wanders up and down on its own. Adjust to recover.
+  drift:{ actionGain:15, haltBelow:40,
+    tick:(w)=>{
+      const drift = (Math.random()<0.5 ? -1 : 1) * (1 + Math.floor(Math.random()*2));
+      w.meter = Math.max(0, Math.min(100, w.meter + drift));
+    } },
+  // Quiet: only while you are LOOKING at this world (and the page is on screen).
+  // Music off -> the meter rises; music on -> it falls. Full gives 💎 and drops back to refillTo (not 0),
+  // so a quiet player never falls under haltBelow and the "keep it quiet for a while" streak is not cut by a refill.
+  // The action button stops the music. While it is quiet, creatures count as cared for (no sleepy faces).
+  quiet:{ actionGain:0, haltBelow:40, quiet:true, riseBy:3, fallBy:4, refillTo:50,
+    tick:(w, cfg)=>{
+      if(!isLookingAt(cfg)) return;
+      const care = CARE_TYPES.quiet;
+      if(!state.musicOn){
+        w.meter = Math.min(100, w.meter + care.riseBy);
+        const now = Date.now(); w.creatures.forEach(c=>c.lastCared = now);
+        if(w.meter >= 100){
+          w.meter = care.refillTo; state.gems += 5; burstSparkles();
+          onMeterFull(cfg.id);
+        }
+      } else {
+        w.meter = Math.max(0, w.meter - care.fallBy);
+      }
+    } }
+};
+/* Music just started in a quiet world (▶ Music there, or arriving there with music on, or a song from the music notes later):
+   say why the friends look troubled, once. English first; 日本語 if chosen on the Field Notes page (2.12). */
+const QUIET_MSG = {en:'Shh… everyone here likes it quiet.', ja:'ここのみんなは、静かなのが好きだよ。'};
+function sayQuietPlease(){
+  const cfg = WORLD_BY_ID[state.activeWorld];
+  if(!(state.musicOn && careOf(cfg).quiet)) return;
+  // v42: when Field Notes is open (a song from 🎵 Songs), show the same banner on top of it, not hidden in the tank behind
+  const dexOpen = !document.getElementById('dexModal').classList.contains('hidden');
+  showBanner(QUIET_MSG, dexOpen ? {overlay:true} : {});
+}
+/* You are looking at this world right now (it is the active one and the page is not hidden). */
+function isLookingAt(cfg){ return state.activeWorld===cfg.id && !document.hidden && state.worlds[cfg.id].unlocked; }
+/* Quiet care is "on" only while you look at the world with the music off. */
+function isQuietNow(cfg){ return isLookingAt(cfg) && !state.musicOn; }
+function careOf(cfg){ return CARE_TYPES[cfg.care] || CARE_TYPES.listen; }
+
+const TAB_LIMIT = 3; // up to this many worlds: tabs. More than this: the world picker screen.
+const WORLD_ORDER = WORLDS.map(c=>c.id);
+const WORLD_BY_ID = Object.fromEntries(WORLDS.map(c=>[c.id,c]));
+function prevWorldOf(id){ const i = WORLD_ORDER.indexOf(id); return i>0 ? WORLDS[i-1] : null; }
+function prevIsOpen(id){ const p = prevWorldOf(id); return !p || state.worlds[p.id].unlocked; }
+/* The next door waits until you have actually been to the world before it (one door at a time). */
+function prevIsVisited(id){ const p = prevWorldOf(id); return !p || (state.worlds[p.id].unlocked && state.worlds[p.id].tabSeen); }
+const TOTAL_SPECIES = WORLD_ORDER.reduce((n,id)=>n+(SPECIES[id]||[]).length, 0);
+
+
+/* ============ FORMS (v43): a creature that becomes another at some Stage (Tadpole -> Frog, Dragonfly Nymph -> Dragonfly) ============
+   The save code keeps only the species key and the Stage; the form always follows from the Stage, so old codes still work.
+   This is a feature of the creature (sp.forms), not a rule of the world. */
+const SHOW_FORM_BANNER = true; // v43: a banner when a creature changes form. Set to false to turn it off.
+function speciesOf(world, key){ return (SPECIES[world]||[]).find(s=>s.key===key) || null; }
+function formIndexAt(sp, stage){ let i = 0; (sp.forms||[]).forEach((f,j)=>{ if(stage >= f.stage) i = j+1; }); return i; }
+function formOf(sp, i){
+  if(!i || !sp.forms || !sp.forms[i-1]) return {name:sp.name, jp:sp.jp, draw:sp.draw, body:sp.body||'fish', zone:sp.zone||'water', emoji:''};
+  const f = sp.forms[i-1];
+  return {name:f.name, jp:f.jp, draw:f.draw, body:f.body||sp.body||'fish', zone:f.zone||sp.zone||'water', emoji:f.emoji||''};
+}
+function formCount(sp){ return 1 + ((sp.forms||[]).length); }
+/* Sets name, look, body type and zone from the Stage. announce: show the banner (not while loading a save). */
+function applyForm(c, announce){
+  const sp = speciesOf(c.world, c.key); if(!sp) return;
+  const i = formIndexAt(sp, c.stage);
+  const had = c.form;
+  if(had === i) return;
+  const before = formOf(sp, had||0), after = formOf(sp, i);
+  c.form = i;
+  c.name = after.name; c.speciesDraw = after.draw; c.zone = after.zone;
+  c.el.className = c.el.className.replace(/\bbody-\S+/, 'body-'+after.body);
+  const spriteEl = c.el.querySelector('.sprite'); if(spriteEl) spriteEl.innerHTML = after.draw(c.mood||'neutral');
+  if(had == null) return; // first time: just set up
+  if(after.zone !== 'water') c._emerge = true; // a frog or dragonfly comes up out of the water first
+  scheduleSwim(c);
+  if(announce && SHOW_FORM_BANNER && c.world===state.activeWorld){
+    showBanner({en:`${after.emoji||'🎉'} The ${before.name} became a ${after.name}!`, ja:`${after.emoji||'🎉'} ${before.jp}が${after.jp}になったよ!`}, {top:'30%', ms:2800});
+    burstSparkles();
+  }
+}
+/* Up-and-down range (top of the creature, % of the tank) for a zone. Worlds without a water surface: null (the old range). */
+function yRange(world, zone, visualPx){
+  const s = WORLD_BY_ID[world].surface;
+  if(s==null) return null;
+  if(zone==='air'){
+    const h = tank.clientHeight || 300;
+    const hPct = (visualPx || STAGE_SIZES[1]) / h * 100;
+    return [4, Math.max(4, s - hPct)];
+  }
+  if(zone==='both') return [6, 80];
+  return [s + 2, 80]; // water
+}
+
+/* ============ GAME STATE ============ */
+const GROWTH_THRESHOLD = 12;
+const NEW_FRIEND_COST = 100;
+const MAX_CREATURES_PER_WORLD = 8;
+const STAGE_SIZES = [0]; // px, index = stage (1..30). Quadratic ramp: modest at first, wild by the end.
+for(let i=1;i<=30;i++){ STAGE_SIZES.push(Math.round(28 + i*6 + i*i*0.3)); }
+const MAX_STAGE = STAGE_SIZES.length - 1;
+const state = {
+  gems:0, food:3, activeWorld:'ocean', musicOn:false, discovered:new Set(),
+  missionsCompleted:[], dexUnseen:false, dexNew:[], dexLang:'en', loading:false, soundOn:true, // dexLang = page language: English first each time the game opens; 日本語 button switches (kept while playing)
+  progress:{}, // mission progress: 'full:<world>' = times the meter filled, 'listen:<world>' = names heard in that world, '<missionId>' = current good-state streak
+  worlds:{}
+};
+WORLDS.forEach(cfg=>{
+  const open = cfg.unlock.type==='start';
+  state.worlds[cfg.id] = { unlocked:open, meter:cfg.meter.start, creatures:[], selectedId:null, zoom:1, maxStage:1, fullHouseAnnounced:false, tabSeen:open };
+});
+
+const tank = document.getElementById('tank');
+const bgLayer = document.getElementById('bgLayer');
+const creatureLayer = document.getElementById('creatureLayer');
+const murkOverlay = document.getElementById('murkOverlay');
+const gemCountEl = document.getElementById('gemCount');
+// 🍚 food: no longer shown (v39). It had no use, and a cost would bring scarcity (design ch.2). Kept in the save code for old codes.
+const dexBtn = document.getElementById('dexBtn');
+const dexCount = document.getElementById('dexCount');
+const dexModal = document.getElementById('dexModal');
+const dexList = document.getElementById('dexList');
+const dexCloseBtn = document.getElementById('dexCloseBtn');
+const saveBtn = document.getElementById('saveBtn');
+const saveModal = document.getElementById('saveModal');
+const saveCodeOut = document.getElementById('saveCodeOut');
+const copyCodeBtn = document.getElementById('copyCodeBtn');
+const saveCodeIn = document.getElementById('saveCodeIn');
+const loadCodeBtn = document.getElementById('loadCodeBtn');
+const saveCloseBtn = document.getElementById('saveCloseBtn');
+const confirmModal = document.getElementById('confirmModal');
+const confirmText = document.getElementById('confirmText');
+const confirmYesBtn = document.getElementById('confirmYesBtn');
+const confirmNoBtn = document.getElementById('confirmNoBtn');
+const worldModal = document.getElementById('worldModal');
+const worldGrid = document.getElementById('worldGrid');
+document.getElementById('dexTotal').textContent = TOTAL_SPECIES;
+let confirmCallback = null;
+/* Confirm box for actions that can't be taken back (Sell, Release).
+   The sentence follows the page language (English first, 日本語 button switches; shared with Field Notes).
+   Buttons stay short English verbs: "Sell"/"Release" (coloured = the choice) and "Cancel". */
+let confirmMsg = null;
+function renderConfirm(){
+  const lang = state.dexLang;
+  confirmText.textContent = confirmMsg[lang];
+  confirmText.lang = lang;
+  document.getElementById('confirmLangBtn').textContent = lang==='en' ? '日本語' : 'English';
+}
+function showConfirm(msg, yesLabel, onYes){
+  confirmMsg = msg;
+  confirmYesBtn.textContent = yesLabel;
+  confirmCallback = onYes;
+  renderConfirm();
+  confirmModal.classList.remove('hidden');
+}
+document.getElementById('confirmLangBtn').addEventListener('click', ()=>{ state.dexLang = state.dexLang==='en' ? 'ja' : 'en'; renderConfirm(); });
+confirmYesBtn.addEventListener('click', ()=>{ confirmModal.classList.add('hidden'); const cb=confirmCallback; confirmCallback=null; if(cb) cb(); });
+confirmNoBtn.addEventListener('click', ()=>{ confirmModal.classList.add('hidden'); confirmCallback=null; });
+confirmModal.addEventListener('click', (e)=>{ if(e.target===confirmModal){ confirmModal.classList.add('hidden'); confirmCallback=null; } });
+const meterLabel = document.getElementById('meterLabel');
+const meterPct = document.getElementById('meterPct');
+const meterBar = document.getElementById('meterBar');
+const meterFill = document.getElementById('meterFill');
+const musicBtn = document.getElementById('musicBtn');
+const actionBtn = document.getElementById('actionBtn');
+const addBtn = document.getElementById('addBtn');
+const treatBtn = document.getElementById('treatBtn');
+const TREAT_COST = 8;
+const releaseBtn = document.getElementById('releaseBtn');
+const sellBtn = document.getElementById('sellBtn');
+const dexSelBtn = document.getElementById('dexSelBtn');
+const SELL_REWARD = 100;
+let idCounter = 0;
+
+/* ============ WORLD NAVIGATION (tabs, or the picker screen once there are more than TAB_LIMIT worlds) ============ */
+const usePicker = WORLDS.length > TAB_LIMIT;
+function buildWorldNav(){
+  const nav = document.getElementById('worldNav');
+  if(!usePicker){
+    nav.innerHTML = `<div id="tabs">${WORLDS.map(cfg=>
+      `<div class="tab" data-world="${cfg.id}">${cfg.emoji} ${cfg.name}<small class="tab-sub"></small><span class="notify-dot" style="display:none;"></span></div>`
+    ).join('')}</div>`;
+    nav.querySelectorAll('.tab').forEach(t=>t.addEventListener('click', ()=>switchWorld(t.dataset.world)));
+  } else {
+    nav.innerHTML = `<button class="world-btn" id="worldBtn" type="button"><span id="worldBtnLabel"></span><span class="world-btn-caret">▾</span><span class="notify-dot" id="worldBtnDot" style="display:none;"></span></button>`;
+    document.getElementById('worldBtn').addEventListener('click', openWorldPicker);
+  }
+}
+function isUnseen(id){ const w = state.worlds[id]; return w.unlocked && !w.tabSeen; }
+/* Light: only toggles classes and text, never rebuilds. Safe to call from updateHud(). */
+function updateWorldNav(){
+  if(!usePicker){
+    document.querySelectorAll('#tabs .tab').forEach(t=>{
+      const id = t.dataset.world, w = state.worlds[id];
+      t.classList.toggle('active', id===state.activeWorld);
+      t.classList.toggle('locked', !w.unlocked);
+      const sub = WORLD_BY_ID[id].jp + (w.unlocked ? '' : ' · 🔒');
+      const subEl = t.querySelector('.tab-sub');
+      if(subEl.textContent !== sub) subEl.textContent = sub;
+      t.querySelector('.notify-dot').style.display = isUnseen(id) ? 'block' : 'none';
+    });
+  } else {
+    const cfg = WORLD_BY_ID[state.activeWorld];
+    const label = document.getElementById('worldBtnLabel');
+    const html = `${cfg.emoji} ${cfg.name}<small>${cfg.jp}</small>`;
+    if(label.innerHTML !== html) label.innerHTML = html;
+    const anyUnseen = WORLD_ORDER.some(id=>id!==state.activeWorld && isUnseen(id));
+    document.getElementById('worldBtnDot').style.display = anyUnseen ? 'block' : 'none';
+  }
+}
+function lockRequirementText(cfg){
+  if(cfg.unlock.type==='gems') return `🔒 ${cfg.unlock.cost}💎`;
+  if(cfg.unlock.type==='dex') return `🔒 📖${cfg.unlock.count}`;
+  return '🔒';
+}
+/* Built only when the picker opens (not on every HUD update). */
+function renderWorldGrid(){
+  worldGrid.innerHTML = WORLDS.map(cfg=>{
+    const w = state.worlds[cfg.id];
+    const cls = 'world-card' + (w.unlocked ? '' : ' locked') + (cfg.id===state.activeWorld ? ' current' : '');
+    return `<button type="button" class="${cls}" data-world="${cfg.id}" style="background:${cfg.bg};">
+      <span class="wc-emoji">${cfg.emoji}</span>
+      <span class="wc-name">${cfg.name}<small>${cfg.jp}</small></span>
+      ${w.unlocked ? '' : `<span class="wc-req">${lockRequirementText(cfg)}</span>`}
+      ${isUnseen(cfg.id) ? '<span class="notify-dot"></span>' : ''}
+    </button>`;
+  }).join('');
+  worldGrid.querySelectorAll('.world-card').forEach(card=>{
+    card.addEventListener('click', ()=>{ worldModal.classList.add('hidden'); switchWorld(card.dataset.world); });
+  });
+}
+function openWorldPicker(){ renderWorldGrid(); worldModal.classList.remove('hidden'); }
+document.getElementById('worldCloseBtn').addEventListener('click', ()=> worldModal.classList.add('hidden'));
+document.getElementById('worldXBtn').addEventListener('click', ()=> worldModal.classList.add('hidden'));
+worldModal.addEventListener('click', (e)=>{ if(e.target===worldModal) worldModal.classList.add('hidden'); });
+
+function updateHud(){
+  gemCountEl.textContent = state.gems;
+  const cfg = WORLD_BY_ID[state.activeWorld];
+  const care = careOf(cfg);
+  const w = state.worlds[state.activeWorld];
+  meterBar.className = 'meter '+cfg.meter.cls;
+  meterLabel.firstElementChild.textContent = cfg.meter.label;
+  const shown = w.unlocked ? w.meter : 0;
+  meterFill.style.width = shown+'%';
+  meterPct.textContent = shown+'%';
+  const sel = w.selectedId != null ? w.creatures.find(c=>c.id===w.selectedId) : null;
+  actionBtn.textContent = sel ? ('🎵 Listen: '+sel.name) : cfg.actionLabel;
+  murkOverlay.style.opacity = (care.murky && cfg.murk!==false && w.unlocked) ? (((100-w.meter)/100)*0.85).toFixed(2) : 0;
+  const atCap = w.creatures.length >= MAX_CREATURES_PER_WORLD;
+  addBtn.disabled = state.gems < NEW_FRIEND_COST || !w.unlocked || atCap;
+  addBtn.textContent = atCap ? '🎉 Full House!' : `✨ New Friend (${NEW_FRIEND_COST}💎)`;
+  treatBtn.style.display = (sel && sel.mood==='sleepy') ? 'inline-flex' : 'none';
+  treatBtn.disabled = state.gems < TREAT_COST;
+  const hasSelection = w.selectedId != null;
+  releaseBtn.style.display = hasSelection ? 'inline-flex' : 'none';
+  sellBtn.style.display = hasSelection ? 'inline-flex' : 'none';
+  dexSelBtn.style.display = hasSelection ? 'inline-flex' : 'none';
+  actionBtn.disabled = !w.unlocked;
+  actionBtn.classList.toggle('hint', !!(care.quiet && state.musicOn && w.unlocked && !sel));
+  updateLockProgress();
+  updateWorldNav();
+  updateNotifyBadges();
+}
+function updateNotifyBadges(){
+  const dexDot = document.getElementById('dexNotifyDot');
+  if(dexDot) dexDot.style.display = state.dexUnseen ? 'block' : 'none';
+}
+
+/* ============ UNLOCKING (always in order: the world before must be open) ============ */
+function unlockWorld(id){
+  const w = state.worlds[id];
+  if(w.unlocked) return;
+  w.unlocked = true;
+  w.tabSeen = false;
+  SPECIES[id].filter(sp=>!sp.hidden).forEach(sp=>spawnCreature(id, sp.key));
+  checkDexUnlocks();
+}
+/* Field-Notes doors open by themselves (no button, no big effect) — only the notify dot tells you. */
+function checkDexUnlocks(){
+  if(state.loading) return;
+  for(const cfg of WORLDS){
+    const w = state.worlds[cfg.id];
+    if(w.unlocked || cfg.unlock.type!=='dex' || !prevIsVisited(cfg.id)) continue;
+    if(state.discovered.size >= cfg.unlock.count){
+      unlockWorld(cfg.id);
+      if(state.activeWorld===cfg.id) switchWorld(cfg.id);
+      updateHud();
+    }
+  }
+}
+function renderLockOverlay(world){
+  world = world || state.activeWorld;
+  const cfg = WORLD_BY_ID[world];
+  if(tank.querySelector('.locked-overlay')) return;
+  const overlay = document.createElement('div');
+  overlay.className = 'locked-overlay';
+  const prev = prevWorldOf(world);
+  if(!prevIsOpen(world)){
+    overlay.innerHTML = `<div class="lock-emoji">🔒</div>
+      <p>Open <b>${prev.emoji} ${prev.name}</b> first.</p>`;
+  } else if(!prevIsVisited(world)){
+    overlay.innerHTML = `<div class="lock-emoji">${prev.emoji}</div>
+      <p>Go visit <b>${prev.emoji} ${prev.name}</b> first.</p>`;
+  } else if(cfg.unlock.type==='gems'){
+    overlay.innerHTML = `<div class="lock-emoji">🔒</div>
+      <p>Unlock for <b>${cfg.unlock.cost}💎</b>. ${cfg.unlockMessage||''}</p>
+      <button class="btn primary unlockBtn" id="unlockWorldBtn">Unlock (<span id="lockProgress">${state.gems}/${cfg.unlock.cost}💎</span>)</button>`;
+  } else {
+    overlay.innerHTML = `<div class="lock-emoji">🔒</div>
+      <p>This world opens by itself as your Field Notes grow.</p>
+      <p class="lock-count" id="lockProgress">📖 ${state.discovered.size} / ${cfg.unlock.count}</p>`;
+  }
+  tank.appendChild(overlay);
+  const btn = document.getElementById('unlockWorldBtn');
+  if(btn) btn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    if(prevIsVisited(world) && state.gems >= cfg.unlock.cost){
+      state.gems -= cfg.unlock.cost;
+      unlockWorld(world);
+      switchWorld(world);
+    }
+  });
+  document.querySelectorAll('.creature').forEach(el=> el.style.display = 'none');
+}
+function updateLockProgress(){
+  const el = document.getElementById('lockProgress');
+  if(!el) return;
+  const cfg = WORLD_BY_ID[state.activeWorld];
+  const text = cfg.unlock.type==='gems' ? `${state.gems}/${cfg.unlock.cost}💎` : `📖 ${state.discovered.size} / ${cfg.unlock.count}`;
+  if(el.textContent !== text) el.textContent = text;
+}
+
+function markDiscovered(sp){
+  if(!state.discovered.has(sp.key)){
+    state.discovered.add(sp.key);
+    if(!state.loading){ state.dexNew.push(sp.key); state.dexUnseen = true; updateNotifyBadges(); }
+    dexCount.textContent = state.discovered.size;
+    checkDexUnlocks();
+  }
+}
+/* Field Notes (v34)
+   Grid: one row per world, 5 pictures + English names. Tap a found creature for its page.
+   Page: English name, Japanese name, the real-creature fact in Japanese (English button switches),
+   how a hidden friend was found (only once found), ◀ ▶ through found creatures, and a button to go to its world.
+   Text is kept per language (fact.ja / fact.en, find.ja / find.en) so more languages can be added later. */
+const DEX_ORDER = WORLDS.flatMap(cfg=>(SPECIES[cfg.id]||[]).map(sp=>({sp, cfg})));
+function missionForSpecies(key){ return Object.values(MISSION_DEFS).find(d=>d.speciesKey===key) || null; } // MISSION_DEFS is defined further down
+const dexCard = dexModal.querySelector('.dex-card');
+// Long one-word names may wrap in a narrow cell: allow a hyphen before "fish" (Lantern-fish), never in the middle of a word.
+function dexCellName(name){ return name.replace(/\b([A-Za-z]{4,})(fish)\b/g, (m,a,b)=> m.length>=10 ? a+'&shy;'+b : m); }
+function foundOrder(){ return DEX_ORDER.filter(o=>state.discovered.has(o.sp.key)); }
+
+function renderDex(){
+  let html = WORLDS.map(cfg=>{
+    const list = SPECIES[cfg.id] || [];
+    const foundCount = list.filter(sp=>state.discovered.has(sp.key)).length;
+    const cells = list.map(sp=>{
+      if(!state.discovered.has(sp.key)){
+        return `<div class="dex-cell locked"><div class="pic">❓</div><div class="nm">???</div></div>`;
+      }
+      const isNew = state.dexNew.includes(sp.key);
+      return `<button class="dex-cell" data-key="${sp.key}">${isNew?'<span class="new">✨</span>':''}<div class="pic">${sp.draw('neutral')}</div><div class="nm">${dexCellName(sp.name)}</div></button>`;
+    }).join('');
+    return `<div class="dex-row" data-world="${cfg.id}"><h3>${cfg.emoji} ${cfg.name} (${foundCount}/${list.length})</h3><div class="dex-grid">${cells}</div></div>`;
+  }).join('');
+  if(state.missionsCompleted.length){
+    html += `<button class="btn primary" id="shareAchBtn" style="width:100%;max-width:none;margin-top:6px;">📤 Copy to Share</button>`;
+  }
+  dexList.innerHTML = html;
+  dexList.querySelectorAll('.dex-cell[data-key]').forEach(b=>b.addEventListener('click', ()=>openDexPage(b.dataset.key)));
+  if(state.missionsCompleted.length){
+    document.getElementById('shareAchBtn').addEventListener('click', async ()=>{
+      const btn = document.getElementById('shareAchBtn');
+      const text = "🎉 おどる水槽で見つけたよ!\n" + state.missionsCompleted.filter(id=>MISSION_DEFS[id]).map(id=>{
+        const def = MISSION_DEFS[id];
+        const sp = SPECIES[def.world].find(s=>s.key===def.speciesKey);
+        return `• ${sp.name}(${sp.jp}) — ${def.find.ja}`;
+      }).join('\n');
+      try{ await navigator.clipboard.writeText(text); btn.textContent='Copied!'; }
+      catch(e){ btn.textContent='Could not copy'; }
+      setTimeout(()=>{ btn.textContent='📤 Copy to Share'; }, 1500);
+    });
+  }
+}
+/* 🎵 Songs (v39): the song of every world you have opened. Tap = play that song now (music starts if it was off);
+   tap the playing one = stop. It keeps playing after Field Notes closes; moving to another world goes back to that world's song.
+   Same rules as ▶ Music (growth x3, meters; in the Deep Sea the friends look troubled and the quiet message shows). */
+let dexTab = 'friends'; // kept while playing
+function setDexTabs(show){
+  document.getElementById('dexTabs').style.display = show ? 'flex' : 'none';
+  document.getElementById('dexTabFriends').classList.toggle('on', dexTab==='friends');
+  document.getElementById('dexTabSongs').classList.toggle('on', dexTab==='songs');
+}
+function renderSongs(){
+  stopReading();
+  setDexTabs(true);
+  // (v41's quiet note above the list was replaced in v42 by the usual banner shown on top of Field Notes: see sayQuietPlease)
+  dexList.innerHTML = `<div class="song-list">${WORLDS.map(cfg=>{
+    if(!state.worlds[cfg.id].unlocked) return `<div class="song locked"><span class="em">❓</span><span class="nm">???</span><span class="play"></span></div>`;
+    const playing = state.musicOn && musicWorld===cfg.id;
+    return `<button class="song${playing?' playing':''}" data-song="${cfg.id}"><span class="em">${cfg.emoji}</span><span class="nm">${cfg.name}</span><span class="play">${playing?'⏸':'▶'}</span></button>`;
+  }).join('')}</div>`;
+  dexCard.scrollTop = 0;
+  dexList.querySelectorAll('.song[data-song]').forEach(b=>b.addEventListener('click', ()=>playSong(b.dataset.song)));
+}
+async function playSong(id){
+  if(state.musicOn && musicWorld===id){ stopMusic(); }
+  else {
+    musicWorld = MUSIC[id] ? id : 'ocean';
+    if(!state.musicOn) await startMusic();
+  }
+  refreshMoods(); updateHud();
+  renderSongs();
+}
+document.getElementById('dexTabFriends').addEventListener('click', ()=>{ dexTab='friends'; showDexGrid(); });
+document.getElementById('dexTabSongs').addEventListener('click', ()=>{ dexTab='songs'; renderSongs(); });
+function showDexGrid(scrollToWorld){
+  stopReading();
+  if(dexTab==='songs') return renderSongs();
+  setDexTabs(true);
+  renderDex();
+  const row = dexList.querySelector(`.dex-row[data-world="${scrollToWorld||state.activeWorld}"]`);
+  dexCard.scrollTop = 0;
+  // scroll only if that world's row is below the visible part, and only far enough to show it (title and ✕ stay in view when possible)
+  if(row){
+    const bottom = row.offsetTop + row.offsetHeight + 8;
+    if(bottom > dexCard.clientHeight) dexCard.scrollTop = bottom - dexCard.clientHeight;
+  }
+}
+/* Read the page aloud (v36, fixed in v37).
+   In the language on screen. English: name, then the fact. 日本語: the English name in an English voice, then the Japanese name
+   and fact in a Japanese voice (names are for learning in English). Off while 🔇. Stops when the page changes or Field Notes closes,
+   or on a second tap.
+   v37: in the iPhone Claude app only the English name was read in 日本語 mode. Not yet known why, so two fixes together:
+   (A) pick an actual voice for each language from the device's list (not just the language code), and
+   (B) speak one part at a time, starting the next when the previous one ends (not all queued at once).
+   If no Japanese voice is found, or a Japanese part fails, a small note says so on the page, to tell on a real phone which it was. */
+let readingKey = null;
+/* v38: v37 picked "the first voice for the language that is on the device". On iPhone/Mac that list also holds old
+   novelty voices (robot, whisper, …), so the reading sounded much worse than Listen (which picks no voice and gets the
+   device's normal voice). Now: English picks no voice at all (same as Listen). Japanese still picks one (in v36 Japanese was
+   not read without it), but prefers the voice marked as the device default, then better-quality ones, and never a novelty voice. */
+const NOVELTY_VOICES = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Deranged|Fred|Good News|Hysterical|Jester|Junior|Kathy|Organ|Pipe Organ|Ralph|Superstar|Trinoids|Whisper|Wobble|Zarvox)\b/i;
+function pickVoice(lang){
+  if(!lang.startsWith('ja')) return null; // English: leave it to the device, like Listen
+  try{
+    const vs = (speechSynthesis.getVoices() || []).filter(v=>!NOVELTY_VOICES.test(v.name||''));
+    const ja = vs.filter(v=>(v.lang||'').replace('_','-').toLowerCase().startsWith('ja'));
+    const better = v => /enhanced|premium|natural|neural|siri/i.test(v.name||'');
+    return ja.find(v=>v.default) || ja.find(better) || ja.find(v=>v.localService) || ja[0] || null;
+  }catch(e){ return null; }
+}
+function voiceCount(){ try{ return (speechSynthesis.getVoices()||[]).length; }catch(e){ return 0; } }
+function showVoiceNote(text){
+  const n = document.getElementById('dexVoiceNote'); if(n){ n.textContent = text; n.style.display = 'block'; }
+}
+function stopReading(){
+  if(readingKey===null) return;
+  readingKey = null;
+  try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){}
+  const b = document.getElementById('dexReadBtn'); if(b) b.classList.remove('reading');
+}
+/* v39: words the Japanese voice tends to misread. Only the text handed to the voice is changed; the screen keeps the kanji.
+   Add a line when a misreading is heard. Longer words first so they win over shorter ones. */
+// v41: written in katakana, not hiragana. A run of hiragana (まきがいではめずらしく) made the voice split the words wrongly
+// (it read the particle は in では as "ha"); katakana keeps the word edges clear next to hiragana particles.
+const SPEAK_FIX_JA = [
+  ['何百匹','ナンビャッピキ'], ['1匹ずつ','イッピキずつ'], ['米作り','コメヅクリ'], ['上の方','ウエノホウ'],
+  ['巻き貝','マキガイ'], ['小川','オガワ'], ['背の','セの'], ['体','カラダ'], ['巣','ス'],
+  // v40: removed ['歯が','はが'] — the voice read the hiragana は as the particle "wa". Only add misreadings actually heard.
+];
+function speakText(text, lang){
+  if(lang!=='ja-JP') return text;
+  return SPEAK_FIX_JA.reduce((t,[from,to])=>t.split(from).join(to), text);
+}
+function readPage(sp, form){
+  form = form || formOf(sp, 0);
+  if(!state.soundOn || !('speechSynthesis' in window)) return;
+  if(readingKey===sp.key){ stopReading(); return; } // second tap stops
+  stopReading();
+  const lang = state.dexLang;
+  const parts = lang==='ja'
+    ? [[form.name,'en-US'],[form.jp,'ja-JP'],[sp.fact.ja,'ja-JP']]
+    : [[form.name,'en-US'],[sp.fact.en,'en-US']];
+  if(lang==='ja' && !pickVoice('ja-JP')) showVoiceNote(`日本語の声が見つかりませんでした(この端末の声: ${voiceCount()})`);
+  const myKey = sp.key;
+  readingKey = myKey;
+  const b = document.getElementById('dexReadBtn'); if(b) b.classList.add('reading');
+  const finish = ()=>{ if(readingKey===myKey){ readingKey=null; const bb=document.getElementById('dexReadBtn'); if(bb) bb.classList.remove('reading'); } };
+  const speakPart = (i)=>{
+    if(readingKey!==myKey) return;            // stopped or moved on
+    if(i>=parts.length){ finish(); return; }
+    const [text, l] = parts[i];
+    try{
+      const u = new SpeechSynthesisUtterance(speakText(text, l));
+      u.lang = l;
+      const v = pickVoice(l); if(v) u.voice = v;
+      u.rate = l==='en-US' ? 0.85 : 0.95; u.volume = 0.9;
+      u.onend = ()=> speakPart(i+1);
+      u.onerror = (e)=>{
+        if(l==='ja-JP' && e && e.error!=='interrupted' && e.error!=='canceled') showVoiceNote(`日本語の声で読めませんでした(${e.error||'error'})`);
+        speakPart(i+1);
+      };
+      if(speechSynthesis.paused) speechSynthesis.resume();
+      speechSynthesis.speak(u);
+    }catch(e){ finish(); }
+  };
+  speakPart(0);
+}
+// some phones fill the voice list a moment after the page opens
+try{ if('speechSynthesis' in window){ speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = ()=>{}; } }catch(e){}
+function updateReadBtn(){
+  const b = document.getElementById('dexReadBtn'); if(!b) return;
+  b.classList.toggle('muted', !state.soundOn);
+  b.setAttribute('aria-label', state.soundOn ? 'Read aloud' : 'Read aloud (sound is off)');
+}
+/* v43: for a creature with two forms, tapping the big picture switches between them (name, Japanese name and ▶ Read follow).
+   It starts with the first form (Tadpole / Dragonfly Nymph), or the form of the selected creature when opened with 📖.
+   Which form was shown is not saved. */
+function openDexPage(key, formIdx, swapped){
+  stopReading();
+  setDexTabs(false);
+  const order = foundOrder();
+  const idx = order.findIndex(o=>o.sp.key===key);
+  if(idx<0) return showDexGrid();
+  const {sp, cfg} = order[idx];
+  state.dexNew = state.dexNew.filter(k=>k!==key); // seen now
+  const lang = state.dexLang;
+  const def = sp.hidden ? missionForSpecies(sp.key) : null;
+  const canGo = state.worlds[cfg.id].unlocked && state.activeWorld!==cfg.id;
+  const nForms = formCount(sp);
+  const fi = (formIdx>0 && formIdx<nForms) ? formIdx : 0;
+  const form = formOf(sp, fi);
+  const bigPic = nForms>1
+    ? `<button class="big form-toggle${swapped?' swapped':''}" id="dexBigBtn" type="button" aria-label="Change: ${form.name}">${form.draw('happy')}</button>`
+    : `<div class="big">${sp.draw('happy')}</div>`;
+  dexList.innerHTML = `<div class="dex-page">
+    <div class="topbar">
+      <button class="dex-small" id="dexBackBtn">◀ All</button>
+      <button class="dex-small" id="dexLangBtn">${lang==='en' ? '日本語' : 'English'}</button>
+    </div>
+    ${bigPic}
+    <div class="name-row"><p class="en-name">${form.name}</p><button class="dex-small" id="dexReadBtn" aria-label="Read aloud">▶ Read</button></div>
+    <p class="jp-name">${form.jp}</p>
+    <p class="fact" lang="${lang}">${sp.fact[lang]}</p>
+    <p class="voice-note" id="dexVoiceNote" style="display:none;"></p>
+    ${def ? `<p class="found" lang="${lang}">🏆 ${lang==='ja' ? '見つけ方' : 'How you found it'}: ${def.find[lang]}</p>` : ''}
+    <div class="nav">
+      <button class="dex-small" id="dexPrevBtn" ${idx===0?'disabled':''}>◀</button>
+      <span style="font-family:'Baloo 2';font-size:12px;opacity:.6;">${cfg.emoji} ${idx+1} / ${order.length}</span>
+      <button class="dex-small" id="dexNextBtn" ${idx===order.length-1?'disabled':''}>▶</button>
+    </div>
+    ${canGo ? `<button class="btn primary goto" id="dexGoBtn">Go to ${cfg.emoji} ${cfg.name}</button>` : ''}
+  </div>`;
+  dexCard.scrollTop = 0;
+  updateReadBtn();
+  document.getElementById('dexReadBtn').addEventListener('click', ()=>readPage(sp, form));
+  if(nForms>1) document.getElementById('dexBigBtn').addEventListener('click', ()=>openDexPage(key, (fi+1)%nForms, true));
+  document.getElementById('dexBackBtn').addEventListener('click', ()=>{ dexTab='friends'; showDexGrid(cfg.id); });
+  document.getElementById('dexLangBtn').addEventListener('click', ()=>{ state.dexLang = lang==='ja' ? 'en' : 'ja'; openDexPage(key, fi); });
+  if(idx>0) document.getElementById('dexPrevBtn').addEventListener('click', ()=>openDexPage(order[idx-1].sp.key));
+  if(idx<order.length-1) document.getElementById('dexNextBtn').addEventListener('click', ()=>openDexPage(order[idx+1].sp.key));
+  if(canGo) document.getElementById('dexGoBtn').addEventListener('click', ()=>{ closeDex(); switchWorld(cfg.id); });
+}
+dexBtn.addEventListener('click', ()=>{
+  state.dexUnseen=false; updateNotifyBadges();
+  dexModal.classList.remove('hidden');
+  // a new friend gets its page shown first (the newest one); others keep a ✨ on the grid
+  if(state.dexNew.length) openDexPage(state.dexNew[state.dexNew.length-1]);
+  else showDexGrid();
+});
+// 📖 next to Listen: straight to the selected creature's page ("what is this one?" while the question is fresh).
+// Closing goes back to the tank; the creature stays selected.
+dexSelBtn.addEventListener('click', ()=>{
+  const w = state.worlds[state.activeWorld];
+  const sel = w.selectedId != null ? w.creatures.find(c=>c.id===w.selectedId) : null;
+  if(!sel) return;
+  dexModal.classList.remove('hidden');
+  openDexPage(sel.key, sel.form||0);
+  updateNotifyBadges();
+});
+function closeDex(){ stopReading(); dexModal.classList.add('hidden'); }
+dexCloseBtn.addEventListener('click', closeDex);
+document.getElementById('dexXBtn').addEventListener('click', closeDex);
+dexModal.addEventListener('click', (e)=>{ if(e.target===dexModal) closeDex(); });
+
+/* ============ MISSIONS ============
+   Only these condition types exist (no new kinds per world):
+   fullCount (meter filled n times) / listen (names heard n times in that world) / goodStreak (meter >= min for n ticks)
+   stage (a creature reached stage n) / fullHouse (8 creatures) */
+const MISSION_DEFS = {
+  ocean_happy3:         { world:'ocean',  speciesKey:'seaturtle',    find:{ja:"Ocean の Happiness を3回いっぱい(100%)にした", en:"Filled Ocean Happiness to 100% three times"}, cond:{type:'fullCount', n:3} },
+  ocean_listen20:       { world:'ocean',  speciesKey:'starfish',     find:{ja:"Ocean で名前を20回聞いた", en:"Listened to names in the Ocean 20 times"},    cond:{type:'listen', n:20} },
+  river_clear_streak:   { world:'river',  speciesKey:'catfish',      find:{ja:"River の Water Clarity を90%以上のまま、しばらく保った", en:"Kept the River crystal clear for a while"},   cond:{type:'goodStreak', min:90, ticks:10} },
+  river_stage15:        { world:'river',  speciesKey:'giantsalamander',        find:{ja:"River の生き物を Stage 15 まで育てた", en:"Grew a River creature to Stage 15"},          cond:{type:'stage', n:15} },
+  suisou_comfort_streak:{ world:'suisou', speciesKey:'angelfish',    find:{ja:"Tank の Comfort を60%以上のまま、しばらく保った", en:"Kept the Tank comfortable for a while"},      cond:{type:'goodStreak', min:60, ticks:15} },
+  suisou_fullhouse:     { world:'suisou', speciesKey:'cherryshrimp', find:{ja:"Tank を Full House(8ひき)にした", en:"Reached Full House in the Tank"},             cond:{type:'fullHouse'} },
+  coral_happy3:         { world:'coral',  speciesKey:'mantaray',     find:{ja:"Coral Reef の Happiness を3回いっぱい(100%)にした", en:"Filled Coral Reef Happiness to 100% three times"}, cond:{type:'fullCount', n:3} },
+  coral_stage25:        { world:'coral',  speciesKey:'whaleshark',   find:{ja:"Coral Reef の生き物を Stage 25 まで育てた", en:"Grew a Coral Reef creature to Stage 25"},     cond:{type:'stage', n:25} },
+  deepsea_quiet_streak: { world:'deepsea',speciesKey:'giantisopod',  find:{ja:"Deep Sea を静かにしたまま(Calm 40%以上)、しばらく見続けた", en:"Kept the Deep Sea quiet for a while"},        cond:{type:'goodStreak', min:40, ticks:30} },
+  deepsea_calm3:        { world:'deepsea',speciesKey:'seapig',       find:{ja:"Deep Sea の Calm を3回いっぱい(100%)にした", en:"Filled Deep Sea Calm to 100% three times"},   cond:{type:'fullCount', n:3} },
+  paddy_listen20:       { world:'paddy',  speciesKey:'giantwaterbug', find:{ja:"Rice Paddy で名前を20回聞いた", en:"Listened to names in the Rice Paddy 20 times"}, cond:{type:'listen', n:20} },
+  paddy_stage20:        { world:'paddy',  speciesKey:'dragonflynymph',find:{ja:"Rice Paddy の生き物を Stage 20 まで育てた", en:"Grew a Rice Paddy creature to Stage 20"},     cond:{type:'stage', n:20} },
+  tidepool_comfort_streak:{ world:'tidepool', speciesKey:'nudibranch', find:{ja:"Tide Pool の Comfort を60%以上のまま、しばらく保った", en:"Kept the Tide Pool comfortable for a while"}, cond:{type:'goodStreak', min:60, ticks:15} },
+  tidepool_fullhouse:   { world:'tidepool', speciesKey:'octopus',     find:{ja:"Tide Pool を Full House(8ひき)にした", en:"Reached Full House in the Tide Pool"},       cond:{type:'fullHouse'} }
+};
+function missionsOf(type, world){
+  return Object.keys(MISSION_DEFS).filter(id=>{ const d = MISSION_DEFS[id]; return d.cond.type===type && (world==null || d.world===world); });
+}
+function onListened(world){
+  const key = 'listen:'+world; // counted per world, so a new world's "listen" mission starts from zero
+  state.progress[key] = (state.progress[key]||0) + 1;
+  missionsOf('listen', world).forEach(id=>{ if(state.progress[key] >= MISSION_DEFS[id].cond.n) completeMission(id); });
+}
+function onMeterFull(world){
+  const key = 'full:'+world;
+  state.progress[key] = (state.progress[key]||0) + 1;
+  missionsOf('fullCount', world).forEach(id=>{ if(state.progress[key] >= MISSION_DEFS[id].cond.n) completeMission(id); });
+}
+function checkGoodStreaks(world){
+  const w = state.worlds[world];
+  const cfg = WORLD_BY_ID[world];
+  const quietOK = careOf(cfg).quiet ? isQuietNow(cfg) : true; // quiet worlds: only counts while it is actually quiet
+  missionsOf('goodStreak', world).forEach(id=>{
+    const c = MISSION_DEFS[id].cond;
+    state.progress[id] = (w.meter >= c.min && quietOK) ? (state.progress[id]||0) + 1 : 0;
+    if(state.progress[id] >= c.ticks) completeMission(id);
+  });
+}
+function completeMission(missionId){
+  if(state.missionsCompleted.includes(missionId)) return;
+  const def = MISSION_DEFS[missionId];
+  const world = def.world;
+  const hiddenSp = SPECIES[world].find(s=>s.key===def.speciesKey);
+  if(!hiddenSp || state.discovered.has(hiddenSp.key)) return;
+  state.missionsCompleted.push(missionId);
+  markDiscovered(hiddenSp);
+  state.dexUnseen = true;
+  if(state.worlds[world].creatures.length < MAX_CREATURES_PER_WORLD){
+    spawnCreature(world, hiddenSp.key);
+  }
+  if(state.activeWorld===world){
+    showBanner({en:`🎉 New friend discovered: ${hiddenSp.name}!`, ja:`🎉 新しい友だちを見つけた: ${hiddenSp.name}!`}, {top:'42%', ms:2800});
+    burstSparkles();
+  }
+  updateHud();
+}
+
+/* Banners (v40): every banner uses the full-width row with the text centred inside it (the old translate(-50%) centring
+   was cancelled by the float-up animation, so long text ran off the right edge: the "Full House" cut).
+   msg is plain text, or {en, ja} which follows the page language (English first; 日本語 if chosen. Spec 2.12). */
+// v41: the float-up animation used to end after 2.4s whatever the text, so long ones (Full House) vanished before anyone
+// could read them. Now the time grows with the length: short ones as before, long ones up to 6s.
+function bannerMs(text){ return Math.min(6000, Math.max(2400, 1200 + [...text].length * 80)); }
+function showBanner(msg, opts){
+  opts = (opts && typeof opts==='object') ? opts : {};
+  const text = (msg && typeof msg==='object') ? msg[state.dexLang] : msg;
+  const ms = Math.max(opts.ms || 0, bannerMs(text));
+  const row = document.createElement('div'); row.className = opts.overlay ? 'levelup-row overlay' : 'levelup-row'; row.style.top = opts.top || '40%';
+  row.style.animationDuration = ms + 'ms';
+  const span = document.createElement('span'); span.textContent = text; row.appendChild(span);
+  (opts.overlay ? document.body : creatureLayer).appendChild(row); setTimeout(()=>row.remove(), ms);
+}
+function removeCreature(world, id){
+  const w = state.worlds[world];
+  const idx = w.creatures.findIndex(c=>c.id===id);
+  if(idx===-1) return null;
+  const [c] = w.creatures.splice(idx,1);
+  c.el.remove();
+  if(w.selectedId===id) w.selectedId=null;
+  updateZoom(world);
+  checkFullHouse(world);
+  return c;
+}
+releaseBtn.addEventListener('click', ()=>{
+  const w = state.worlds[state.activeWorld];
+  if(w.selectedId==null) return;
+  const sel = w.creatures.find(c=>c.id===w.selectedId);
+  if(!sel) return;
+  showConfirm({
+    en:`Say goodbye to ${sel.name}? It will be gone, and its growth won't come back.`,
+    ja:`${sel.name} とさようならしますか? この子はいなくなり、育てた大きさも戻りません。`
+  }, 'Release', ()=>{
+    const removed = removeCreature(state.activeWorld, sel.id);
+    if(removed) showBanner({en:`🕊️ ${removed.name} swam off, free.`, ja:`🕊️ ${removed.name} は自由に泳いでいった。`});
+    updateHud();
+  });
+});
+sellBtn.addEventListener('click', ()=>{
+  const w = state.worlds[state.activeWorld];
+  if(w.selectedId==null) return;
+  const sel = w.creatures.find(c=>c.id===w.selectedId);
+  if(!sel) return;
+  showConfirm({
+    en:`Sell ${sel.name} for ${SELL_REWARD}💎? It will be gone, and its growth won't come back.`,
+    ja:`${sel.name} を ${SELL_REWARD}💎 で売りますか? 売ると、この子はいなくなり、育てた大きさも戻りません。`
+  }, 'Sell', ()=>{
+    const removed = removeCreature(state.activeWorld, sel.id);
+    if(removed){
+      state.gems += SELL_REWARD;
+      showBanner({en:`💰 Sold ${removed.name} for ${SELL_REWARD}💎`, ja:`💰 ${removed.name} を売って ${SELL_REWARD}💎 もらった。`});
+      burstSparkles();
+    }
+    updateHud();
+  });
+});
+
+/* ============ SAVE CODE ============
+   New format (v28~), starts with "D2":
+     D2|gems|food|activeWorldId|discoveredKeys|missionIds|progress|listenCount|worlds
+     (listenCount is kept only for v28 codes; since v29 the count lives in progress as 'listen:<world>' and this field is 0)
+     progress: "key=value" pairs, comma-separated
+     worlds:   per world "id:unlocked:meter:creatures:visited", separated by ";" (visited added in v29; missing = same as unlocked)
+     creatures:"key.stage.growth", comma-separated
+   Worlds are stored by id (not by position), so adding worlds later never breaks old codes.
+   Codes from v27 and earlier (no "D2" at the start) are still read. */
+const SAVE_TAG = 'D2';
+const LEGACY_WORLDS = ['ocean','river','suisou'];
+function exportSave(){
+  const progressCSV = Object.keys(state.progress).filter(k=>state.progress[k]).map(k=>k+'='+state.progress[k]).join(',');
+  const worldsSeg = WORLDS.map(cfg=>{
+    const w = state.worlds[cfg.id];
+    const cr = w.creatures.map(c=>`${c.key}.${c.stage}.${Math.floor(c.growth)}`).join(',');
+    return [cfg.id, w.unlocked?1:0, w.meter, cr, w.tabSeen?1:0].join(':');
+  }).join(';');
+  const raw = [SAVE_TAG, state.gems, state.food, state.activeWorld, [...state.discovered].join(','),
+               state.missionsCompleted.join(','), progressCSV, 0, worldsSeg].join('|');
+  return btoa(unescape(encodeURIComponent(raw)));
+}
+function csv(s){ return s ? s.split(',').filter(Boolean) : []; }
+function parseCurrentSave(parts){
+  if(parts.length < 9) return null;
+  const [, gems, food, active, disc, miss, prog, listen, worldsSeg] = parts;
+  const progress = {};
+  csv(prog).forEach(pair=>{ const i = pair.lastIndexOf('='); if(i>0) progress[pair.slice(0,i)] = Number(pair.slice(i+1))||0; });
+  const worlds = {};
+  (worldsSeg||'').split(';').forEach(seg=>{
+    if(!seg) return;
+    const [id, un, meter, cr, vis] = seg.split(':');
+    worlds[id] = { unlocked: un==='1', meter:Number(meter), visited: vis==null ? un==='1' : vis==='1',
+      creatures: csv(cr).map(e=>{ const [key, st, gr] = e.split('.'); return {key, stage:parseInt(st)||1, growth:parseInt(gr)||0}; }) };
+  });
+  return { gems:parseInt(gems)||0, food:parseInt(food), active, discovered:csv(disc), missions:csv(miss),
+           progress, listenCount:parseInt(listen)||0, worlds };
+}
+function parseLegacySave(parts){
+  // v27 layout: gems|food|activeWorldIdx|discoveredKeys|missionIds|missionProgress|unlockedFlags|meters|creatures
+  if(parts.length < 9) return null;
+  const [gems, food, activeIdx, disc, miss, mpCSV, unlockedStr, metersCSV, creaturesSeg] = parts;
+  const mp = mpCSV.split(',').map(Number);
+  const meters = metersCSV.split(',').map(Number);
+  const segs = creaturesSeg.split(';');
+  const worlds = {};
+  LEGACY_WORLDS.forEach((id,i)=>{
+    worlds[id] = { unlocked: unlockedStr[i]==='1', meter: meters[i]||0,
+      creatures: csv(segs[i]).map(e=>{ const [key, st, gr] = e.split(':'); return {key, stage:parseInt(st)||1, growth:parseInt(gr)||0}; }) };
+  });
+  return { gems:parseInt(gems)||0, food:parseInt(food), active:LEGACY_WORLDS[parseInt(activeIdx)] || 'ocean',
+           discovered:csv(disc), missions:csv(miss),
+           progress:{ 'full:ocean':mp[0]||0, river_clear_streak:mp[1]||0, suisou_comfort_streak:mp[2]||0 },
+           listenCount:0, worlds };
+}
+function importSave(code){
+  let raw;
+  try{ raw = decodeURIComponent(escape(atob(code.trim()))); } catch(e){ return false; }
+  const parts = raw.split('|');
+  const data = parts[0]===SAVE_TAG ? parseCurrentSave(parts) : parseLegacySave(parts);
+  if(!data) return false;
+  state.loading = true;
+  Object.values(state.worlds).forEach(w=>{ w.creatures.forEach(c=>{ clearTimeout(c._swimTimer); c.el.remove(); }); w.creatures=[]; w.selectedId=null; });
+  state.gems = data.gems;
+  state.food = isNaN(data.food) ? 3 : data.food;
+  // v40: River became a Japanese river; the otter (extinct in Japan) was replaced by the giant salamander
+  const RENAMED_KEYS = {otter:'giantsalamander'};
+  data.discovered = data.discovered.map(k=>RENAMED_KEYS[k]||k);
+  Object.values(data.worlds||{}).forEach(d=>{ if(d && d.creatures) d.creatures.forEach(cd=>{ cd.key = RENAMED_KEYS[cd.key]||cd.key; }); });
+  state.discovered = new Set(data.discovered);
+  state.missionsCompleted = data.missions.filter(id=>MISSION_DEFS[id]);
+  state.progress = data.progress;
+  // v27/v28 counted names across all worlds; carry that count over as the Ocean count
+  if(data.listenCount && !state.progress['listen:ocean']) state.progress['listen:ocean'] = data.listenCount;
+  WORLDS.forEach(cfg=>{
+    const wd = state.worlds[cfg.id];
+    const d = data.worlds[cfg.id];
+    wd.unlocked = cfg.unlock.type==='start' ? true : !!(d && d.unlocked);
+    wd.meter = (d && !isNaN(d.meter)) ? d.meter : cfg.meter.start;
+    wd.tabSeen = cfg.unlock.type==='start' ? true : !!(d && (d.visited==null ? d.unlocked : d.visited));
+    if(d){
+      d.creatures.forEach(cd=>{
+        if(!SPECIES[cfg.id].some(s=>s.key===cd.key)) return; // unknown creature: skip instead of crashing
+        const c = spawnCreature(cfg.id, cd.key);
+        c.stage = Math.min(MAX_STAGE, cd.stage); c.growth = cd.growth;
+        c.el.style.width = STAGE_SIZES[c.stage]+'px'; c.el.style.height = STAGE_SIZES[c.stage]+'px';
+        applyForm(c, false);
+      });
+    }
+    updateZoom(cfg.id);
+  });
+  state.loading = false;
+  state.dexNew = []; state.dexUnseen = false; // a loaded save starts with everything already seen
+  checkDexUnlocks();
+  switchWorld(WORLD_BY_ID[data.active] ? data.active : 'ocean');
+  dexCount.textContent = state.discovered.size;
+  updateHud();
+  return true;
+}
+saveBtn.addEventListener('click', ()=>{ saveCodeOut.value = exportSave(); saveCodeIn.value=''; saveModal.classList.remove('hidden'); });
+copyCodeBtn.addEventListener('click', async ()=>{
+  saveCodeOut.select();
+  try{ await navigator.clipboard.writeText(saveCodeOut.value); copyCodeBtn.textContent='Copied!'; }
+  catch(e){ document.execCommand('copy'); copyCodeBtn.textContent='Copied!'; }
+  setTimeout(()=>copyCodeBtn.textContent='Copy Code', 1500);
+});
+loadCodeBtn.addEventListener('click', ()=>{
+  const ok = importSave(saveCodeIn.value);
+  if(ok){ saveModal.classList.add('hidden'); }
+  else { loadCodeBtn.textContent='Could not read that code'; setTimeout(()=>loadCodeBtn.textContent='Load Code', 1800); }
+});
+saveCloseBtn.addEventListener('click', ()=> saveModal.classList.add('hidden'));
+document.getElementById('saveXBtn').addEventListener('click', ()=> saveModal.classList.add('hidden'));
+saveModal.addEventListener('click', (e)=>{ if(e.target===saveModal) saveModal.classList.add('hidden'); });
+
+/* ---- creature spawn / render ---- */
+function spawnCreature(world, speciesKey){
+  const pool = speciesKey
+    ? SPECIES[world]
+    : SPECIES[world].filter(s => !s.hidden || state.discovered.has(s.key));
+  const sp = speciesKey ? pool.find(s=>s.key===speciesKey) : pool[Math.floor(Math.random()*pool.length)];
+  markDiscovered(sp);
+  const el = document.createElement('div');
+  const id = idCounter++;
+  el.className = 'creature body-'+(sp.body||'fish');
+  el.dataset.world = world;
+  el.style.width = STAGE_SIZES[1]+'px'; el.style.height = STAGE_SIZES[1]+'px';
+  const zr = yRange(world, formOf(sp,0).zone, STAGE_SIZES[1]);
+  const startX = 10+Math.random()*70, startY = zr ? zr[0] + Math.random()*(zr[1]-zr[0]) : 12+Math.random()*62;
+  el.style.left = startX+'%'; el.style.top = startY+'%';
+  el.innerHTML = `<div class="sprite">${sp.draw('neutral')}</div>`;
+  const c = {id, world, key:sp.key, name:sp.name, el, stage:1, growth:0, dir:1, x:startX, y:startY, mood:'neutral', lastCared:Date.now(), speciesDraw:sp.draw};
+  applyForm(c, false);
+  el.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const w = state.worlds[world];
+    if(w.selectedId === c.id){
+      w.selectedId = null; el.classList.remove('selected');
+    } else {
+      if(w.selectedId != null){ const prev = w.creatures.find(x=>x.id===w.selectedId); if(prev) prev.el.classList.remove('selected'); }
+      w.selectedId = c.id; el.classList.add('selected');
+      playHeadphoneMoment(c);
+    }
+    updateHud();
+  });
+  if(world!==state.activeWorld || !state.worlds[world].unlocked) el.style.display='none';
+  creatureLayer.appendChild(el);
+  state.worlds[world].creatures.push(c);
+  scheduleSwim(c);
+  updateZoom(world);
+  updateHud();
+  checkFullHouse(world);
+  return c;
+}
+function checkFullHouse(world){
+  const w = state.worlds[world];
+  if(w.creatures.length >= MAX_CREATURES_PER_WORLD){
+    if(!w.fullHouseAnnounced){
+      w.fullHouseAnnounced = true;
+      if(state.activeWorld===world){
+        showBanner({en:'🎉 Full House! Growth is boosted while the tank stays full.', ja:'🎉 Full House! 水槽がいっぱいの間、みんな早く育つよ。'}, {top:'38%', ms:2800});
+        burstSparkles();
+      }
+      missionsOf('fullHouse', world).forEach(completeMission);
+    }
+  } else {
+    w.fullHouseAnnounced = false;
+  }
+}
+
+/* ---- headphone moment: tap a creature, it gets headphones + a punchy bass-forward riff, just for them ---- */
+let hpReady=false, hpKick, hpBass;
+function setupHeadphoneAudio(){
+  hpKick = new Tone.MembraneSynth({pitchDecay:0.05,octaves:5,envelope:{attack:0.001,decay:0.4,sustain:0}}).toDestination();
+  hpKick.volume.value=-7;
+  hpBass = new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:0.01,decay:0.25,sustain:0.2,release:0.3}}).toDestination();
+  hpBass.volume.value=-8;
+  hpReady=true;
+}
+async function playHeadphoneMoment(c){
+  c.el.classList.add('headphones','bop');
+  setTimeout(()=>c.el.classList.remove('headphones','bop'), 2200);
+  try{
+    if(!hpReady) setupHeadphoneAudio();
+    await Tone.start();
+    applySound();
+    const now = Tone.now();
+    // "zun-cha-zun-cha": kick, bass, kick, bass
+    // Same timing and volume as before; only the pitches now follow the key of the world's music.
+    const chord = chordAt(state.musicOn ? Tone.Transport.ticks : 0);
+    const pc = n => n.replace(/[0-9]/g,'');
+    const root = pc(chord[0]), fifth = pc(chord[2]);
+    hpKick.triggerAttackRelease(root+'1','8n', now);
+    hpBass.triggerAttackRelease(root+'2','16n', now+0.22);
+    hpKick.triggerAttackRelease(root+'1','8n', now+0.42);
+    hpBass.triggerAttackRelease(fifth+'2','16n', now+0.64);
+  }catch(e){ /* audio unavailable — the headphone/bop visual still plays */ }
+}
+
+function scheduleSwim(c){
+  const dx = (Math.random()*50-25), dy=(Math.random()*40-20);
+  const newX = Math.min(82, Math.max(4, c.x+dx));
+  let zr = yRange(c.world, c._emerge ? 'air' : (c.zone||'water'), c._visual);
+  c._emerge = false;
+  let newY;
+  if(!zr) newY = Math.min(80, Math.max(6, c.y+dy));
+  else if(zr[1]-zr[0] < 20 || c.y < zr[0] || c.y > zr[1]) newY = zr[0] + Math.random()*(zr[1]-zr[0]); // narrow band, or just moved to a new zone
+  else newY = Math.min(zr[1], Math.max(zr[0], c.y+dy));
+  c.dir = (newX >= c.x) ? 1 : -1;
+  const dur = 3500 + Math.random()*2500;
+  c.el.style.transition = `left ${dur}ms ease-in-out, top ${dur}ms ease-in-out, width .4s, height .4s, transform .6s`;
+  c.el.style.left = newX+'%'; c.el.style.top = newY+'%';
+  c.x = newX; c.y = newY;
+  const sprite = c.el.querySelector('.sprite');
+  const angled = Math.random() < 0.4;
+  const skew = angled ? -10 : 0;
+  sprite.style.transform = `scaleX(${c.dir}) skewY(${skew}deg)`;
+  c.el.style.setProperty('--flip', `scaleX(${c.dir}) skewY(${skew}deg)`);
+  clearTimeout(c._swimTimer);
+  c._swimTimer = setTimeout(()=>scheduleSwim(c), dur);
+}
+
+/* Each creature is shrunk by the world's zoom, but never below MIN_VISUAL_PX on screen
+   (about the size of a newborn), and always gets a tap area of at least MIN_TAP_PX.
+   Smaller creatures sit in front, so a huge creature can't cover them. */
+const MIN_VISUAL_PX = 32;
+const MIN_TAP_PX = 48;
+function applyCreatureScale(c){
+  const w = state.worlds[c.world];
+  const size = STAGE_SIZES[c.stage];
+  const scale = Math.min(1, Math.max(w.zoom||1, MIN_VISUAL_PX/size));
+  const visual = size*scale;
+  c._visual = visual;
+  const hitPad = Math.max(0, (MIN_TAP_PX - visual)/2) / scale; // in unscaled px
+  c.el.style.setProperty('--zoom', scale.toFixed(4));
+  c.el.style.setProperty('--hit', hitPad.toFixed(1)+'px');
+  c.el.style.zIndex = String(100 - c.stage);
+}
+function updateZoom(world){
+  const w = state.worlds[world];
+  const maxSize = w.creatures.length ? Math.max(...w.creatures.map(c=>STAGE_SIZES[c.stage])) : STAGE_SIZES[1];
+  w.maxStage = w.creatures.length ? Math.max(...w.creatures.map(c=>c.stage)) : 1;
+  const cap = 70;
+  let zoom = maxSize > cap ? cap / maxSize : 1;
+  zoom = Math.max(0.12, Math.min(1, zoom));
+  w.zoom = zoom;
+  w.creatures.forEach(applyCreatureScale);
+  if(world === state.activeWorld){
+    const bgZoom = 1 - (1-zoom)*0.45; // background recedes more gently -> parallax depth
+    bgLayer.style.transform = `scale(${bgZoom})`;
+  }
+}
+function addGrowth(c, amount){
+  c.growth += amount;
+  if(c.growth >= GROWTH_THRESHOLD && c.stage < MAX_STAGE){
+    c.growth = 0; c.stage++;
+    c.el.style.width = STAGE_SIZES[c.stage]+'px'; c.el.style.height = STAGE_SIZES[c.stage]+'px';
+    state.gems += 2;
+    updateZoom(c.world);
+    applyForm(c, true);
+    missionsOf('stage', c.world).forEach(id=>{ if(c.stage >= MISSION_DEFS[id].cond.n) completeMission(id); });
+    if(c.world===state.activeWorld){
+      const lvl = document.createElement('div');
+      lvl.className='levelup'; lvl.textContent = c.name+' grew! ✨';
+      lvl.style.left = c.el.style.left; lvl.style.top = c.el.style.top;
+      creatureLayer.appendChild(lvl); setTimeout(()=>lvl.remove(), 2400);
+    }
+    updateHud();
+  }
+}
+function growCreature(c){
+  const w = state.worlds[c.world];
+  if(!w.unlocked) return;
+  const cfg = WORLD_BY_ID[c.world];
+  const care = careOf(cfg);
+  let rate = care.quiet ? (isQuietNow(cfg) ? 3 : 1) : (state.musicOn ? 3 : 1);
+  if(care.haltBelow!=null && w.meter < care.haltBelow) rate = 0; // dirty water / uncomfortable tank halts growth
+  if(w.creatures.length >= MAX_CREATURES_PER_WORLD) rate *= 1.5; // Full House bonus
+  addGrowth(c, rate);
+}
+function showNameLabel(c){
+  const label = document.createElement('div');
+  label.className='namelabel';
+  label.textContent = '♪ '+c.name;
+  label.style.left = c.el.style.left; label.style.top = c.el.style.top;
+  creatureLayer.appendChild(label);
+  setTimeout(()=>label.remove(), 1800);
+}
+function listenTo(c){
+  addGrowth(c, 4);
+  c.lastCared = Date.now();
+  showNameLabel(c);
+  onListened(c.world);
+  if(state.soundOn && 'speechSynthesis' in window){
+    try{
+      if(speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel(); // clear a stuck queue
+      readingKey = null;
+      if(speechSynthesis.paused) speechSynthesis.resume();
+      const u = new SpeechSynthesisUtterance(c.name);
+      u.lang='en-US'; u.rate=0.85; u.pitch=1.15; u.volume=0.8;
+      speechSynthesis.speak(u);
+    }catch(e){ /* no TTS available — the name label above is the fallback */ }
+  }
+}
+
+/* ---- mood: neglected creatures look sleepy/sad, recently-cared ones look happy.
+   Thresholds are compressed (seconds, not hours) so the effect is visible in a demo session. */
+function refreshMoods(){
+  const now = Date.now();
+  WORLDS.forEach(cfg=>{
+    const w = state.worlds[cfg.id];
+    const uneasy = careOf(cfg).quiet && state.musicOn && isLookingAt(cfg);
+    w.creatures.forEach(c=>{
+      const elapsed = now - c.lastCared;
+      let mood = 'neutral';
+      if(uneasy) mood = 'uneasy';
+      else if(elapsed < 15000) mood = 'happy';
+      else if(elapsed > 45000) mood = 'sleepy';
+      if(mood !== c.mood){
+        c.mood = mood;
+        const spriteEl = c.el.querySelector('.sprite');
+        if(spriteEl) spriteEl.innerHTML = c.speciesDraw(mood);
+      }
+    });
+  });
+}
+setInterval(refreshMoods, 4000);
+
+/* ---- world tick (every 2s): growth, then each world's care rule ---- */
+function worldTick(){
+  WORLDS.forEach(cfg=>{ const w = state.worlds[cfg.id]; if(w.unlocked) w.creatures.forEach(growCreature); });
+  WORLDS.forEach(cfg=>{
+    const w = state.worlds[cfg.id];
+    if(!w.unlocked) return;
+    const care = careOf(cfg);
+    if(care.tick) care.tick(w, cfg);
+    checkGoodStreaks(cfg.id);
+    if(care.tick && state.activeWorld===cfg.id) updateHud();
+  });
+}
+setInterval(worldTick, 2000);
+
+/* ---- bubbles ---- */
+function spawnBubble(){
+  const b=document.createElement('div'); b.className='bubble';
+  const size=4+Math.random()*10;
+  b.style.width=size+'px'; b.style.height=size+'px'; b.style.left=Math.random()*100+'%';
+  b.style.animationDuration=(4+Math.random()*5)+'s';
+  const surf = WORLD_BY_ID[state.activeWorld].surface;
+  if(surf!=null) b.style.setProperty('--rise', `-${Math.round((tank.clientHeight||300)*(1-surf/100)) + 20}px`); // v43: only under the water
+  tank.appendChild(b); setTimeout(()=>b.remove(),9000);
+}
+setInterval(spawnBubble, 700);
+
+function switchWorld(world){
+  const firstVisit = state.worlds[world].unlocked && !state.worlds[world].tabSeen;
+  state.activeWorld = world;
+  state.worlds[world].tabSeen = true;
+  musicWorld = MUSIC[world] ? world : 'ocean';
+  Object.values(state.worlds).forEach(w=>{
+    if(w.selectedId!=null){ const c=w.creatures.find(x=>x.id===w.selectedId); if(c) c.el.classList.remove('selected'); }
+    w.selectedId = null;
+  });
+  tank.style.background = WORLD_BY_ID[world].bg;
+  tank.classList.toggle('no-bubbles', WORLD_BY_ID[world].bubbles===false);
+  const surfaceLine = document.getElementById('surfaceLine');
+  const surf = WORLD_BY_ID[world].surface;
+  surfaceLine.style.display = surf!=null ? 'block' : 'none';
+  if(surf!=null) surfaceLine.style.top = surf+'%';
+  bgLayer.style.opacity = WORLD_BY_ID[world].bgOpacity ?? ''; // optional per world; the older worlds keep the CSS default (.55)
+  bgLayer.querySelectorAll('svg').forEach(svg=>{ svg.style.display = svg.classList.contains('bg-'+world) ? 'block' : 'none'; });
+  const overlay = tank.querySelector('.locked-overlay'); if(overlay) overlay.remove();
+  document.querySelectorAll('.creature').forEach(el=>{ el.style.display = (el.dataset.world===world) ? 'block' : 'none'; });
+  bgLayer.style.transform = `scale(${1 - (1-(state.worlds[world].zoom||1))*0.45})`;
+  if(!state.worlds[world].unlocked) renderLockOverlay(world);
+  refreshMoods();
+  sayQuietPlease(); // arriving in a quiet world with music on counts as music starting there
+  // v43: the first time you arrive in a newly opened world, one sentence about the real place (if the world has one)
+  if(firstVisit && WORLD_BY_ID[world].firstVisitMessage) showBanner(WORLD_BY_ID[world].firstVisitMessage, {top:'30%'});
+  updateHud();
+  checkDexUnlocks(); // you have now been here, so the next door may open
+}
+
+/* ---- feed / add ---- */
+function performAction(){
+  const w = state.worlds[state.activeWorld];
+  if(!w.unlocked) return;
+  if(w.selectedId != null){
+    const sel = w.creatures.find(c=>c.id===w.selectedId);
+    if(sel) listenTo(sel);
+  } else {
+    const care = careOf(WORLD_BY_ID[state.activeWorld]);
+    if(care.quiet){ stopMusic(); showBanner('🤫 Shhh…'); }
+    w.meter = Math.min(100, w.meter + care.actionGain);
+    w.creatures.forEach(c=>c.lastCared=Date.now());
+    refreshMoods();
+  }
+  updateHud();
+}
+actionBtn.addEventListener('click', performAction);
+addBtn.addEventListener('click', ()=>{
+  const w = state.worlds[state.activeWorld];
+  if(state.gems<NEW_FRIEND_COST || !w.unlocked || w.creatures.length>=MAX_CREATURES_PER_WORLD) return;
+  state.gems -= NEW_FRIEND_COST;
+  spawnCreature(state.activeWorld);
+  updateHud();
+});
+treatBtn.addEventListener('click', ()=>{
+  const w = state.worlds[state.activeWorld];
+  if(w.selectedId==null) return;
+  const sel = w.creatures.find(c=>c.id===w.selectedId);
+  if(!sel || sel.mood!=='sleepy' || state.gems<TREAT_COST) return;
+  state.gems -= TREAT_COST;
+  addGrowth(sel, 10);
+  sel.lastCared = Date.now();
+  sel.mood = 'happy';
+  const spriteEl = sel.el.querySelector('.sprite'); if(spriteEl) spriteEl.innerHTML = sel.speciesDraw('happy');
+  showNameLabel(sel);
+  burstSparkles();
+  updateHud();
+});
+
+/* =====================================================
+   MUSIC — Tone.js ambient loop (Minecraft-esque, sparse & warm)
+   A world without its own entry here plays the Ocean music.
+===================================================== */
+const MUSIC = {
+  ocean:{ chords:[['C4','E4','G4','B4'],['A3','C4','E4','G4'],['F3','A3','C4','E4'],['G3','B3','D4','F4']],
+          notes:['C5','D5','E5','G5','A5',null,'E5','G5',null,'D5','E5',null] },
+  river:{ chords:[['D4','F4','A4','C5'],['Bb3','D4','F4','A4'],['F3','A3','C4','E4'],['C4','E4','G4','Bb4']],
+          notes:['D5','F5','G5','A5',null,'C5','D5',null,'A4','C5',null,'F5'] },
+  suisou:{ chords:[['G3','B3','D4','F#4'],['E3','G3','B3','D4'],['C4','E4','G4','B4'],['D4','F#4','A4','C5']],
+          notes:['G5','A5','B5','D6',null,'E5','G5',null,'B5','D6',null,'A5'] },
+  // New worlds (v32~) may also choose: lead = melody instrument (default 'pluck'), beat:false = no kick/shaker.
+  // Phone speakers barely play low notes, so new music stays in the middle and high range.
+  coral:{ lead:'marimba',
+          chords:[['F4','A4','C5','E5'],['D4','F4','A4','C5'],['Bb3','D4','F4','A4'],['C4','E4','G4','Bb4']],
+          notes:['F5','A5','C6','A5','G5',null,'F5','G5','A5',null,'C6',null] },
+  // Deep Sea: a soft music box, few notes, no beat. Quiet is the right answer here, so the music is gentle, not loud.
+  /* v43 Rice Paddy: a simple flute on a Japanese five-note scale (D E G A B), with a small high drum, no kick (spec 2.11). */
+  paddy:{ lead:'flute', noteLen:'4n', beat:'taiko',
+          chords:[['G4','B4','D5','E5'],['E4','G4','B4','D5'],['C4','E4','G4','A4'],['D4','G4','A4','B4']],
+          notes:['D5',null,'E5','G5','A5',null,'B5','A5','G5',null,'E5',null,'D5','E5','G5',null] },
+  /* v43 Tide Pool: a rocking three-beat feel (a chord lasts three beats), a plucked string, and a soft wave swish. */
+  tidepool:{ lead:'harp', chordBeats:3, beat:'swish',
+          chords:[['A4','C#5','E5','G#5'],['F#4','A4','C#5','E5'],['D4','F#4','A4','C#5'],['E4','G#4','B4','D5']],
+          notes:['C#6',null,'B5','A5',null,'E5','F#5',null,'A5','C#6',null,null,'D6',null,'C#6','A5',null,'F#5','E5',null,'G#5','B5',null,null] },
+  deepsea:{ lead:'musicbox', beat:false,
+          chords:[['A4','C5','E5','G5'],['F4','A4','C5','E5'],['D4','F4','A4','C5'],['E4','G4','B4','D5']],
+          notes:['E6',null,null,null,'C6',null,null,null,'A5',null,null,null,'B5',null,null,null,'G5',null,null,null,null,null,null,null] }
+};
+let musicWorld='ocean';
+let toneReady=false, pad, pluck, marimba, musicBox, flute, harp, shime, swish, leads, kick, shaker, bell, sparkleSynth, chordSeq, melodySeq, beatLoop, layerLoop;
+/* The chord playing at a given transport tick. Chords change every 2 beats, or every chordBeats beats (v43: Tide Pool = 3). */
+function chordBeatsOf(){ return MUSIC[musicWorld].chordBeats || 2; }
+function chordAt(ticks){
+  const chords = MUSIC[musicWorld].chords;
+  const idx = Math.floor(ticks / (Tone.Transport.PPQ*chordBeatsOf()) + 0.001);
+  return chords[((idx % chords.length) + chords.length) % chords.length];
+}
+function setupMusic(){
+  Tone.Transport.bpm.value = 90;
+  pad = new Tone.PolySynth(Tone.Synth,{oscillator:{type:'sine'},envelope:{attack:0.8,decay:0.5,sustain:0.6,release:2.2}}).toDestination();
+  pad.volume.value=-17;
+  pluck = new Tone.Synth({oscillator:{type:'triangle'},envelope:{attack:0.005,decay:0.3,sustain:0.05,release:0.4}}).toDestination();
+  pluck.volume.value=-9;
+  // Mallet sound: a quick, bright FM tone that dies away fast
+  marimba = new Tone.FMSynth({harmonicity:4, modulationIndex:2, oscillator:{type:'sine'},
+    envelope:{attack:0.001,decay:0.35,sustain:0,release:0.2},
+    modulation:{type:'sine'}, modulationEnvelope:{attack:0.001,decay:0.08,sustain:0,release:0.05}}).toDestination();
+  marimba.volume.value=-7;
+  // Music box: a high, soft bell-like tone that rings a little longer
+  musicBox = new Tone.FMSynth({harmonicity:3, modulationIndex:1.2, oscillator:{type:'sine'},
+    envelope:{attack:0.001,decay:1.2,sustain:0,release:1}, modulation:{type:'sine'},
+    modulationEnvelope:{attack:0.001,decay:0.2,sustain:0,release:0.1}}).toDestination();
+  musicBox.volume.value=-11;
+  // v43 flute (Rice Paddy): a soft, breathy tone with a little vibrato
+  const fluteVib = new Tone.Vibrato(5, 0.08).toDestination();
+  flute = new Tone.Synth({oscillator:{type:'custom', partials:[1,0.35,0.12]}, envelope:{attack:0.06,decay:0.15,sustain:0.7,release:0.35}}).connect(fluteVib);
+  flute.volume.value=-10;
+  // v43 harp (Tide Pool): a plucked-string tone made with FM, like the other leads.
+  // (Tone.PluckSynth was tried first: it needs an AudioWorklet, which failed to load in testing and is missing on older iPhones.)
+  harp = new Tone.FMSynth({harmonicity:2, modulationIndex:3, oscillator:{type:'sine'},
+    envelope:{attack:0.002,decay:0.9,sustain:0,release:0.6}, modulation:{type:'triangle'},
+    modulationEnvelope:{attack:0.002,decay:0.25,sustain:0,release:0.2}}).toDestination();
+  harp.volume.value=-9;
+  leads = {pluck, marimba, musicbox:musicBox, flute, harp};
+  // v43 small high drum (like a shime-daiko) for Rice Paddy, and a soft wave swish for Tide Pool. Both stay out of the low range.
+  shime = new Tone.MembraneSynth({pitchDecay:0.008, octaves:1.2, envelope:{attack:0.001,decay:0.12,sustain:0}}).toDestination();
+  shime.volume.value=-14;
+  swish = new Tone.NoiseSynth({noise:{type:'pink'}, envelope:{attack:0.12,decay:0.6,sustain:0}}).toDestination();
+  swish.volume.value=-30;
+  kick = new Tone.MembraneSynth({pitchDecay:0.02,octaves:4,envelope:{attack:0.001,decay:0.35,sustain:0}}).toDestination();
+  kick.volume.value=-16;
+  shaker = new Tone.NoiseSynth({noise:{type:'white'},envelope:{attack:0.001,decay:0.06,sustain:0}}).toDestination();
+  shaker.volume.value=-28;
+  bell = new Tone.Synth({oscillator:{type:'sine'},envelope:{attack:0.01,decay:1.4,sustain:0,release:1.1}}).toDestination();
+  bell.volume.value=-15;
+  sparkleSynth = new Tone.Synth({oscillator:{type:'triangle'},envelope:{attack:0.005,decay:0.6,sustain:0,release:0.4}}).toDestination();
+  sparkleSynth.volume.value=-17;
+
+  // v43: checked every beat, so a chord can last 2 beats (all older worlds, same as before) or 3 (Tide Pool)
+  chordSeq = new Tone.Loop(t=>{
+    const ticks = Tone.Transport.getTicksAtTime(t);
+    const beats = chordBeatsOf();
+    if(Math.round(ticks/Tone.Transport.PPQ) % beats === 0) pad.triggerAttackRelease(chordAt(ticks), Tone.Time('4n').toSeconds()*beats, t);
+  }, '4n');
+  let ni=0; melodySeq = new Tone.Loop(t=>{ const m=MUSIC[musicWorld]; const nArr=m.notes; const n=nArr[ni%nArr.length]; if(n) (leads[m.lead]||pluck).triggerAttackRelease(n, m.noteLen||'8n', t); ni++; }, '8n');
+  let bi=0; beatLoop = new Tone.Loop(t=>{
+    const beatType = MUSIC[musicWorld].beat;
+    const withBeat = beatType == null; // the older worlds: kick + shaker, as before
+    if(withBeat && bi%4===0) kick.triggerAttackRelease('C2','8n',t);
+    if(withBeat && bi%4===2 && Math.random()<0.6) shaker.triggerAttackRelease('16n',t);
+    const b = Math.round(Tone.Transport.getTicksAtTime(t)/Tone.Transport.PPQ); // beat number, lined up with the chords
+    if(beatType==='taiko'){ // "TEN te-ke TEN -" on a small high drum
+      const eighth = Tone.Time('8n').toSeconds();
+      if(b%4===0 || b%4===2) shime.triggerAttackRelease('D5','16n',t,0.9);
+      if(b%4===1){ shime.triggerAttackRelease('A5','16n',t,0.45); shime.triggerAttackRelease('A5','16n',t+eighth,0.45); }
+    }
+    if(beatType==='swish'){ // a wave on the first of every three beats, a light tick on the others
+      if(b%3===0) swish.triggerAttackRelease('2n',t);
+      else if(Math.random()<0.5) shaker.triggerAttackRelease('16n',t);
+    }
+    Tone.Draw.schedule(()=>{ pulseCreatures(); bumpProgress(); }, t);
+    bi++;
+  }, '4n');
+  layerLoop = new Tone.Loop(t=>{
+    const w = state.worlds[state.activeWorld];
+    const maxStage = w ? (w.maxStage||1) : 1;
+    // Both layers land exactly on beats and only use notes of the chord playing at that moment,
+    // so they sit inside the music instead of fighting it.
+    const chord = chordAt(Tone.Transport.getTicksAtTime(t));
+    const up = n => Tone.Frequency(n).transpose(12).toNote();
+    if(maxStage>=10){
+      bell.triggerAttackRelease(up(chord[Math.floor(Math.random()*chord.length)]), '2n', t);
+    }
+    if(maxStage>=20){
+      const beat2 = t + Tone.Time('4n').toSeconds();
+      sparkleSynth.triggerAttackRelease(up(chord[Math.floor(Math.random()*chord.length)]), '4n', beat2);
+    }
+  }, '1m');
+  toneReady=true;
+}
+let spotlightBeat = 0;
+function pulseCreatures(){
+  document.querySelectorAll('.creature').forEach(el=>{ el.classList.add('beat'); setTimeout(()=>el.classList.remove('beat'),150); });
+  spotlightBeat++;
+  if(spotlightBeat % 8 === 0){
+    const w = state.worlds[state.activeWorld];
+    if(w.creatures.length){
+      const pick = w.creatures[Math.floor(Math.random()*w.creatures.length)];
+      showNameLabel(pick);
+    }
+  }
+}
+/* Every beat while music plays: worlds with the "listen" care type fill up. */
+function bumpProgress(){
+  if(!state.musicOn) return;
+  let activeTouched = false;
+  WORLDS.forEach(cfg=>{
+    if(!careOf(cfg).fillsWithMusic) return;
+    const w = state.worlds[cfg.id];
+    if(!w.unlocked) return;
+    w.meter = Math.min(100, w.meter+1);
+    if(w.meter>=100){
+      w.meter=0; state.gems+=5; burstSparkles();
+      onMeterFull(cfg.id);
+    }
+    if(cfg.id===state.activeWorld) activeTouched = true;
+  });
+  if(activeTouched) updateHud(); else gemCountEl.textContent=state.gems;
+}
+function burstSparkles(){
+  for(let i=0;i<10;i++){
+    const s=document.createElement('div'); s.className='sparkle';
+    s.textContent=['✨','💫','⭐'][Math.floor(Math.random()*3)];
+    s.style.left=(10+Math.random()*80)+'%'; s.style.top=(10+Math.random()*70)+'%';
+    tank.appendChild(s); setTimeout(()=>s.remove(),900);
+  }
+}
+function stopMusic(){
+  if(!state.musicOn) return;
+  try{ Tone.Transport.stop(); chordSeq.stop(); melodySeq.stop(); beatLoop.stop(); layerLoop.stop(); }catch(e){}
+  state.musicOn=false; musicBtn.textContent='▶ Music'; musicBtn.classList.remove('playing'); tank.classList.remove('music-on');
+}
+async function startMusic(){
+  if(!toneReady) setupMusic();
+  await Tone.start();
+  applySound();
+  if(state.musicOn) return;
+  chordSeq.start(0); melodySeq.start(0); beatLoop.start(0); layerLoop.start(0); Tone.Transport.start();
+  state.musicOn=true; musicBtn.textContent='⏸ Pause'; musicBtn.classList.add('playing'); tank.classList.add('music-on');
+  sayQuietPlease();
+}
+musicBtn.addEventListener('click', async ()=>{
+  // v40: ▶ Music always plays this world's song. A song picked in 🎵 Songs lasts until the music is stopped.
+  if(!state.musicOn){ musicWorld = MUSIC[state.activeWorld] ? state.activeWorld : 'ocean'; await startMusic(); } else { stopMusic(); }
+  refreshMoods();
+  updateHud();
+});
+
+/* ---- 🔊 / 🔇 : turns every sound off (music, spoken names, headphone riff).
+   The game itself keeps going: creatures dance and grow, names still appear as text.
+   Not saved — reopening the page always starts with sound on.
+   (The iPhone silent switch mutes the music but not the spoken names, and a page
+   cannot change that — tried in v30 — so this button is the one place to turn all sound off.) */
+const soundBtn = document.getElementById('soundBtn');
+function applySound(){
+  try{ if(window.Tone && Tone.Destination) Tone.Destination.mute = !state.soundOn; }catch(e){}
+  if(!state.soundOn){ try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){} }
+  soundBtn.textContent = state.soundOn ? '🔊' : '🔇';
+  soundBtn.setAttribute('aria-label', state.soundOn ? 'Sound on' : 'Sound off');
+}
+soundBtn.addEventListener('click', ()=>{ state.soundOn = !state.soundOn; if(!state.soundOn) readingKey = null; applySound(); updateReadBtn(); });
+
+/* ---- start ---- */
+buildWorldNav();
+spawnCreature('ocean','clownfish'); spawnCreature('ocean','seasnail'); spawnCreature('ocean','hermitcrab');
+state.dexNew = []; state.dexUnseen = false; // the starting friends are not "new"
+switchWorld('ocean');
+
+/* tap anywhere on the tank that ISN'T a creature -> deselect (creature clicks stopPropagation, so this only fires for empty space) */
+tank.addEventListener('click', ()=>{
+  const w = state.worlds[state.activeWorld];
+  if(w.selectedId != null){
+    const c = w.creatures.find(x=>x.id===w.selectedId);
+    if(c) c.el.classList.remove('selected');
+    w.selectedId = null;
+    updateHud();
+  }
+});
+
+function stopEverythingWhenHidden(){
+  stopMusic();
+  try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){}
+}
+document.addEventListener('visibilitychange', ()=>{ if(document.hidden) stopEverythingWhenHidden(); });
+window.addEventListener('pagehide', stopEverythingWhenHidden);
+</script>
+</body>
+</html>
