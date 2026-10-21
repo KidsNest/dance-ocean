@@ -4,6 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Dance Ocean</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dance Ocean">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
@@ -15,9 +20,16 @@
     --gem:#8E7CFF;
   }
   *{box-sizing:border-box;}
-  html,body{margin:0;height:100%;font-family:'Nunito',sans-serif;background:#0B4F6C;overflow:hidden;}
+  html,body{margin:0;height:100%;font-family:'Nunito',sans-serif;background:#0B4F6C;overflow:hidden;touch-action:manipulation;}
   h1,.font-display{font-family:'Baloo 2',sans-serif;}
-  #app{position:relative;width:100vw;height:100vh;display:flex;flex-direction:column;color:var(--white);}
+  #app{position:relative;width:100vw;height:100%;display:flex;flex-direction:column;color:var(--white);}
+  /* v44: iPhone Safari counts 100vh as the height with the address bar hidden, so the bottom buttons were cut off.
+     dvh follows the address bar (iOS 15.4+). Older browsers keep height:100% above. */
+  @supports (height:100dvh){
+    #app{height:100dvh;}
+  }
+  /* v44: stop double-tap zoom on fast taps (pinch zoom still works). Set on scroll boxes too. */
+  button,.btn,#tank,.dex-card{touch-action:manipulation;}
 
   header{padding:10px 16px 4px;text-align:center;background:rgba(6,38,36,.55);border-radius:0 0 18px 18px;}
   header h1{margin:0;font-size:clamp(17px,4.2vw,24px);text-shadow:0 2px 0 rgba(0,0,0,.15);}
@@ -121,6 +133,7 @@
   .dex-modal{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:50;}
   .dex-modal.hidden{display:none;}
   .dex-card{background:var(--white);color:var(--ink);border-radius:18px;padding:16px 16px 10px;max-width:320px;width:86vw;max-height:74vh;overflow-y:auto;font-family:'Nunito';position:relative;}
+  @supports (height:100dvh){ .dex-card{max-height:74dvh;} }
   .modal-x{position:absolute;top:10px;right:12px;font-size:20px;line-height:1;background:rgba(0,0,0,.06);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;color:var(--ink);}
   .dex-card h2{font-family:'Baloo 2';margin:0 0 10px;font-size:18px;}
   /* Field Notes (v34): one row of pictures per world; tap a picture for its page */
@@ -877,7 +890,7 @@ const SPECIES = {
 
 /* Shown small in the corner of the Save screen, so a bug report can say which version it was
    (GitHub Pages: a phone may keep showing an older copy). */
-const APP_VERSION = 'v43';
+const APP_VERSION = 'v44';
 document.getElementById('appVersion').textContent = 'Dance Ocean ' + APP_VERSION;
 
 /* ============ WORLDS ============
