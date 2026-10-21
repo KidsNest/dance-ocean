@@ -8,3 +8,4 @@
 - 4さいから、家族でいっしょに / For ages 4+, to play together with family
 - スマホ・タブレット向け(タッチ操作) / Made for phones and tablets
 - 広告なし、アカウント不要。ゲームのデータを集めたり送ったりしません / No ads, no account. The game does not collect or send your play data.
+- iPhone は Safari の共有ボタン →「ホーム画面に追加」で、アプリのように開けます / On iPhone, use Share → "Add to Home Screen" to open it like an app
