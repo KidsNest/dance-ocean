@@ -1,7 +1,7 @@
 # おどる水槽 / Dance Ocean
 
 音楽にあわせて、水の中の生きものがおどる育成ゲームです。
-A small aquarium game where water creatures dance to music.
+ / A small aquarium game where water creatures dance to music.
 
 ▶ あそぶ / Play: https://kidsnest.github.io/dance-ocean/
 
